@@ -46,66 +46,71 @@ class LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/icon_vnb.png',
-                width: 100,
-                height: 100,
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                "Đăng Nhập Để Sử Dụng",
-                style: TextStyle(fontSize: 24, color: Colors.deepOrange),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: usernameController,
-                decoration: InputDecoration(
-                  hintText: "Tên đăng nhập",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/icon_vnb.png',
+                  width: 100,
+                  height: 100,
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  "Đăng Nhập Để Sử Dụng",
+                  style: TextStyle(fontSize: 24, color: Colors.deepOrange),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: usernameController,
+                  decoration: InputDecoration(
+                    hintText: "Tên đăng nhập",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: "Mật khẩu",
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: "Mật khẩu",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors
-                      .deepOrange, // Sửa 'primary' thành 'backgroundColor'
-                  padding: const EdgeInsets.all(16),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity, // Chiều rộng bằng với ô "Mật khẩu"
+                  child: ElevatedButton(
+                    onPressed: login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors
+                          .deepOrange, // Sửa 'primary' thành 'backgroundColor'
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: const Text(
+                      "Đăng nhập",
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
                 ),
-                child: const Text(
-                  "Đăng nhập",
-                  style: TextStyle(fontSize: 16),
+                const SizedBox(height: 16),
+                const Text(
+                  "Phần mềm kiểm hàng - phiên bản: 1.0",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Phần mềm kiểm hàng - phiên bản: 1.0",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
