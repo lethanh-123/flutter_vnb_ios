@@ -11,8 +11,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class LoginScreenState extends State<LoginScreen> {
-  final TextEditingController usernameController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController usernameController =
+      TextEditingController(text: "nv_quan10");
+  final TextEditingController passwordController =
+      TextEditingController(text: "123456@@");
   final FocusNode passwordFocusNode = FocusNode(); // Add this line
   void showErrorDialog(String message) {
     showDialog(
