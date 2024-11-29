@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_vnb_ios/api_service.dart';
+import 'preferences.dart'; // Import the Preferences class
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,22 +13,7 @@ class LoginScreen extends StatefulWidget {
 class LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
-  void login() {
-    final username = usernameController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (username.isEmpty) {
-      showErrorDialog("Thiếu tên đăng nhập");
-    } else if (password.isEmpty) {
-      showErrorDialog("Thiếu mật khẩu");
-    } else if (username == "admin" && password == "1234") {
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      showErrorDialog("Thông tin đăng nhập không đúng");
-    }
-  }
-
+  final FocusNode passwordFocusNode = FocusNode(); // Add this line
   void showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -40,6 +28,47 @@ class LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  void login() async {
+    final username = usernameController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (username.isEmpty) {
+      showErrorDialog("Thiếu tên đăng nhập");
+      return;
+    }
+    if (password.isEmpty) {
+      showErrorDialog("Thiếu mật khẩu");
+      return;
+    }
+
+    final response = await ApiService.callApi('dang_nhap', {
+      'user': username,
+      'pass': password,
+    });
+
+    if (response != null &&
+        response['tv_id'] != null &&
+        response['tv_id'] > 0) {
+      // Use Preferences.saveUserInfo instead of SharedPreferences.saveUserInfo
+      await Preferences.saveUserInfo(response);
+      navigateToHomeScreen();
+    } else {
+      showErrorDialog("Thông tin đăng nhập không đúng");
+      passwordController.clear();
+      passwordFocusNode.requestFocus(); // Use FocusNode to request focus
+    }
+  }
+
+  void navigateToHomeScreen() {
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+
+  @override
+  void dispose() {
+    passwordFocusNode.dispose(); // Don't forget to dispose FocusNode
+    super.dispose();
   }
 
   @override
@@ -79,6 +108,7 @@ class LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: passwordController,
                   obscureText: true,
+                  focusNode: passwordFocusNode, // Set the focus node here
                   decoration: InputDecoration(
                     hintText: "Mật khẩu",
                     filled: true,
@@ -90,12 +120,11 @@ class LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
-                  width: double.infinity, // Chiều rộng bằng với ô "Mật khẩu"
+                  width: double.infinity,
                   child: ElevatedButton(
                     onPressed: login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors
-                          .deepOrange, // Sửa 'primary' thành 'backgroundColor'
+                      backgroundColor: Colors.deepOrange,
                       padding: const EdgeInsets.all(16),
                     ),
                     child: const Text(
