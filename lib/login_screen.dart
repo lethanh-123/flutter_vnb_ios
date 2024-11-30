@@ -64,7 +64,7 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   void navigateToHomeScreen() {
-    Navigator.pushReplacementNamed(context, '/home');
+    Navigator.pushReplacementNamed(context, '/tonkho');
   }
 
   @override
