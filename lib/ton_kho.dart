@@ -6,6 +6,7 @@ import 'package:flutter_vnb_ios/banhang.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_vnb_ios/api_service.dart';
 import 'preferences.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const TonKhoApp());
@@ -278,12 +279,28 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
               itemBuilder: (context, index) {
                 final product = _productList[index];
                 return ListTile(
+                  leading: product['thumb'] != null
+                      ? Image.network(
+                          product['thumb'] ?? '',
+                          width: 50, // Đặt kích thước hình ảnh
+                          height: 50,
+                          fit:
+                              BoxFit.cover, // Đảm bảo hình ảnh không bị kéo dãn
+                        )
+                      : const Icon(Icons.image,
+                          size:
+                              50), // Nếu không có hình ảnh thì hiển thị biểu tượng mặc định
                   title: Text(product['ten_sp'] ?? ''),
-
-                  subtitle: product['size'] != null &&
-                          product['size']!.isNotEmpty
-                      ? Text('Size: ${product['size']}')
-                      : null, // Nếu không có size, sẽ không hiển thị subtitle
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (product['size'] != null &&
+                          product['size']!.isNotEmpty)
+                        Text('Size: ${product['size']}'),
+                      Text(
+                          'Giá: ${product['gia']}'), // Hiển thị giá, nếu không có giá thì hiển thị "Liên hệ"
+                    ],
+                  ), // Nếu không có size, sẽ không hiển thị subtitle
                   trailing: Text('${product['ton_kho']}'),
                 );
               },
@@ -333,7 +350,8 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
 
           // Log the product list
           debugPrint('Danh sách sản phẩm tồn kho: $productList');
-
+          final NumberFormat currencyFormat =
+              NumberFormat.simpleCurrency(locale: 'vi_VN');
           // Clear old products and add new ones
           _productList.clear();
           _productList.addAll(productList.map((product) {
@@ -341,6 +359,11 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
               'ten_sp': product['ten_sp']?.toString() ?? '',
               'size': product['size']?.toString() ?? '',
               'ton_kho': product['total']?.toString() ?? '',
+              'thumb': product['thumb']?.toString() ?? '',
+              'gia': product['gia'] != null
+                  ? currencyFormat.format(
+                      double.tryParse(product['gia']?.toString() ?? '0') ?? 0)
+                  : '',
             };
           }).toList());
           page++;
