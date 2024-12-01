@@ -202,70 +202,112 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
 
   Widget _buildSearchSection() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DropdownButtonFormField<String>(
-            value: _selectedBranch,
-            onChanged: (String? value) {
-              setState(() {
-                _selectedBranch = value;
-              });
-            },
-            items: _branchList.map((branch) {
-              return DropdownMenuItem<String>(
-                value: branch['id'],
-                child: Text(branch['name'] ?? ''),
-              );
-            }).toList(),
-            decoration: const InputDecoration(
-              hintText: 'Chọn chi nhánh',
-              border: OutlineInputBorder(),
+      padding: const EdgeInsets.all(0.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(height: 8.0),
-          DropdownButtonFormField<String>(
-            value: _selectedCategory,
-            onChanged: (String? value) {
-              setState(() {
-                _selectedCategory = value;
-              });
-            },
-            items: _categoryList.map((category) {
-              return DropdownMenuItem<String>(
-                value: category['id'],
-                child: Text(category['name'] ?? ''),
-              );
-            }).toList(),
-            decoration: const InputDecoration(
-              hintText: 'Chọn danh mục',
-              border: OutlineInputBorder(),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Dropdown chọn chi nhánh
+            DropdownButtonFormField<String>(
+              value: _selectedBranch,
+              onChanged: (String? value) {
+                setState(() {
+                  _selectedBranch = value;
+                });
+              },
+              items: _branchList.map((branch) {
+                return DropdownMenuItem<String>(
+                  value: branch['id'],
+                  child: Text(branch['name'] ?? ''),
+                );
+              }).toList(),
+              decoration: const InputDecoration(
+                hintText: 'Chọn chi nhánh',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              ),
             ),
-          ),
-          const SizedBox(height: 8.0),
-          TextField(
-            controller: _productNameController,
-            decoration: const InputDecoration(
-              hintText: 'Tìm theo tên sản phẩm',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 6.0),
+
+            // Dropdown chọn danh mục
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              onChanged: (String? value) {
+                setState(() {
+                  _selectedCategory = value;
+                });
+              },
+              items: _categoryList.map((category) {
+                return DropdownMenuItem<String>(
+                  value: category['id'],
+                  child: Text(category['name'] ?? ''),
+                );
+              }).toList(),
+              decoration: const InputDecoration(
+                hintText: 'Chọn danh mục',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              ),
             ),
-          ),
-          const SizedBox(height: 8.0),
-          TextField(
-            controller: _sizeController,
-            decoration: const InputDecoration(
-              hintText: 'Tìm theo Size',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 6.0),
+
+            // TextField tìm theo tên sản phẩm
+            TextField(
+              controller: _productNameController,
+              decoration: const InputDecoration(
+                hintText: 'Tên sản phẩm',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              ),
             ),
-          ),
-          const SizedBox(height: 12.0),
-          ElevatedButton(
-            onPressed: _searchProducts,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Tìm kiếm'),
-          ),
-        ],
+            const SizedBox(height: 6.0),
+
+            // TextField tìm theo size
+            TextField(
+              controller: _sizeController,
+              decoration: const InputDecoration(
+                hintText: 'Size',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              ),
+            ),
+            const SizedBox(height: 10.0),
+
+            // Nút tìm kiếm
+            SizedBox(
+              height: 40.0,
+              child: ElevatedButton(
+                onPressed: _searchProducts,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
+                ),
+                child: const Text(
+                  'Tìm kiếm',
+                  style: TextStyle(fontSize: 14.0),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
