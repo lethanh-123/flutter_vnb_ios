@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'ton_kho.dart';
 import 'login_screen.dart';
 import 'banhang.dart'; // Ensure this import is included
+import 'invoice_list.dart';
 import 'package:flutter_vnb_ios/api_service.dart';
 import 'preferences.dart';
 import 'functions.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         '/tonkho': (context) =>
             const TonKhoScreen(), // Ensure this route is correct
         '/banhang': (context) => const BanHangScreen(),
+        '/invoices': (context) => InvoiceListScreen(),
         '/login': (context) => const LoginScreen(),
       },
     );

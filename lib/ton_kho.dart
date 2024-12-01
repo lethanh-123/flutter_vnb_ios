@@ -186,6 +186,14 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.bookmark),
+              title: const Text('Danh sách hóa đơn'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/invoices');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.exit_to_app),
               title: const Text('Đăng xuất'),
               onTap: _logout,
