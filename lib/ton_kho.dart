@@ -282,14 +282,11 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
                   leading: product['thumb'] != null
                       ? Image.network(
                           product['thumb'] ?? '',
-                          width: 50, // Đặt kích thước hình ảnh
+                          width: 50,
                           height: 50,
-                          fit:
-                              BoxFit.cover, // Đảm bảo hình ảnh không bị kéo dãn
+                          fit: BoxFit.cover,
                         )
-                      : const Icon(Icons.image,
-                          size:
-                              50), // Nếu không có hình ảnh thì hiển thị biểu tượng mặc định
+                      : const Icon(Icons.image, size: 50),
                   title: Text(product['ten_sp'] ?? ''),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,14 +294,139 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
                       if (product['size'] != null &&
                           product['size']!.isNotEmpty)
                         Text('Size: ${product['size']}'),
-                      Text(
-                          'Giá: ${product['gia']}'), // Hiển thị giá, nếu không có giá thì hiển thị "Liên hệ"
+                      Text('Giá: ${product['gia']}'),
+                      Text('Tồn kho: ${product['ton_kho']}'),
                     ],
-                  ), // Nếu không có size, sẽ không hiển thị subtitle
-                  trailing: Text('${product['ton_kho']}'),
+                  ),
+                  onTap: () =>
+                      _showProductDetails(product), // Hiển thị chi tiết
                 );
               },
             ),
+    );
+  }
+
+  void _showProductDetails(Map<String, dynamic> product) {
+    final TextEditingController searchController = TextEditingController();
+
+    // Initialize branchStocks
+    List<Map<String, dynamic>> branchStocks = [];
+
+    if (product['cn_list'] is String) {
+      try {
+        String jsonString = product['cn_list'];
+
+        // Ensure all keys and string values are properly quoted
+        jsonString = jsonString.replaceAllMapped(
+          RegExp(r'(\w+):'), // Match unquoted keys
+          (match) => '"${match.group(1)}":',
+        );
+        jsonString = jsonString.replaceAllMapped(
+          RegExp(r'(:\s?)([^",{}\[\]]+)(?=\s*[,\}])'), // Match unquoted values
+          (match) => '${match.group(1)}"${match.group(2)}"',
+        );
+
+        debugPrint('Chuỗi JSON sau khi chuẩn hóa: $jsonString');
+
+        // Parse the corrected JSON string
+        branchStocks = List<Map<String, dynamic>>.from(jsonDecode(jsonString));
+      } catch (e) {
+        debugPrint('Lỗi khi parse JSON: $e');
+      }
+    } else if (product['cn_list'] is Iterable) {
+      branchStocks = List<Map<String, dynamic>>.from(product['cn_list']);
+    } else {
+      debugPrint('Dữ liệu cn_list không hợp lệ: ${product['cn_list']}');
+    }
+
+    // Filtered list initialization
+    List<Map<String, dynamic>> filteredBranchStocks = List.from(branchStocks);
+
+    // Display dialog
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(product['ten_sp'] ?? 'Chi tiết sản phẩm'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Tìm kiếm chi nhánh hoặc tồn kho',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (query) {
+                        setState(() {
+                          filteredBranchStocks = branchStocks.where((branch) {
+                            final branchName =
+                                (branch['ten'] ?? '').toLowerCase();
+                            final stock = branch['ton_kho']?.toString() ?? '0';
+                            return branchName.contains(query.toLowerCase()) ||
+                                stock.contains(query);
+                          }).toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    filteredBranchStocks.isEmpty
+                        ? const Text('Không tìm thấy kết quả nào')
+                        : Column(
+                            children: filteredBranchStocks.map((branch) {
+                              return _buildBranchDetails(branch);
+                            }).toList(),
+                          ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Đóng'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+// Cập nhật hàm để hiển thị chi tiết tồn kho
+  Widget _buildBranchDetails(Map<String, dynamic> branch) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              branch['ten'] ?? 'Không có tên chi nhánh',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.0,
+              ),
+            ),
+            const SizedBox(height: 4.0),
+            Text(
+              'Tồn kho: ${branch['ton_kho'] ?? 0}',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14.0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -364,6 +486,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
                   ? currencyFormat.format(
                       double.tryParse(product['gia']?.toString() ?? '0') ?? 0)
                   : '',
+              'cn_list': product['cn_list']?.toString() ?? '',
             };
           }).toList());
           page++;
