@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'preferences.dart';
+import 'printer_setup.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -78,29 +79,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: EdgeInsets.all(16.0),
         children: [
-          DropdownButton<int>(
-            value: notificationType,
-            items: [
-              DropdownMenuItem(value: 0, child: Text('Tiếng bíp')),
-              DropdownMenuItem(value: 1, child: Text('Giọng nói')),
-              DropdownMenuItem(value: 2, child: Text('Không âm thanh')),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Âm báo',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8.0),
+              DropdownButton<int>(
+                value: notificationType,
+                items: [
+                  DropdownMenuItem(value: 0, child: Text('Tiếng bíp')),
+                  DropdownMenuItem(value: 1, child: Text('Giọng nói')),
+                  DropdownMenuItem(value: 2, child: Text('Không âm thanh')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    notificationType = value!;
+                  });
+                },
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  showToast(
+                      'Đã chọn: ${_getNotificationLabel(notificationType)}');
+                },
+                child: Text('Cập nhật'),
+              ),
             ],
-            onChanged: (value) {
-              setState(() {
-                notificationType = value!;
-              });
-            },
           ),
           SizedBox(height: 16.0),
           ElevatedButton(
             onPressed: () {
-              showToast('Chọn Máy In');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PrinterSetupPage()),
+              );
             },
             child: Text('Chọn Máy In'),
           ),
         ],
       ),
     );
+  }
+
+// Hàm bổ trợ để lấy nhãn của giá trị đã chọn
+  String _getNotificationLabel(int type) {
+    switch (type) {
+      case 0:
+        return 'Tiếng bíp';
+      case 1:
+        return 'Giọng nói';
+      case 2:
+        return 'Không âm thanh';
+      default:
+        return 'Không xác định';
+    }
   }
 
   void showToast(String message) {

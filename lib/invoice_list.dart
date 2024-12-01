@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'preferences.dart';
-
+import 'package:flutter_vnb_ios/chi_tiet_phieu.dart';
 import 'package:flutter_vnb_ios/api_service.dart';
 
 class InvoiceListScreen extends StatefulWidget {
@@ -236,6 +236,15 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
                     title: Text(invoice['ten'] ?? "Không rõ"),
                     subtitle: Text("SĐT: ${invoice['so_dt']}"),
                     trailing: Text(invoice['thanh_tien'] ?? "0 ₫"),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              InvoiceDetailScreen(maPhieu: invoice['ma_phieu']),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
