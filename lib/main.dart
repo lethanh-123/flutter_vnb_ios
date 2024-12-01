@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_vnb_ios/cai_dat.dart';
 import 'ton_kho.dart';
 import 'login_screen.dart';
 import 'banhang.dart'; // Ensure this import is included
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
             const TonKhoScreen(), // Ensure this route is correct
         '/banhang': (context) => const BanHangScreen(),
         '/invoices': (context) => InvoiceListScreen(),
+        '/cai_dat': (context) => SettingsScreen(),
         '/login': (context) => const LoginScreen(),
       },
     );

@@ -146,6 +146,14 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Cài đặt'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/cai_dat');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.exit_to_app),
               title: const Text('Đăng xuất'),
               onTap: _logout,
