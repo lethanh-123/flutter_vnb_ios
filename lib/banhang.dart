@@ -86,39 +86,43 @@ class _BanHangScreenState extends State<BanHangScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.inventory),
-            title: const Text('Tồn kho'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/tonkho');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Bán hàng'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/banhang');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app),
-            title: const Text('Đăng xuất'),
-            onTap: _logout,
-          ),
-          const Spacer(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Phiên bản: 1.0.0',
-              style: TextStyle(color: Colors.grey),
+    return Container(
+      margin: const EdgeInsets.only(top: 30), // Thêm margin-top 20px
+      child: Drawer(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Tồn kho'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/tonkho');
+              },
             ),
-          ),
-        ],
+            ListTile(
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('Bán hàng'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/banhang');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.exit_to_app),
+              title: const Text('Đăng xuất'),
+              onTap: _logout,
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Phiên bản: 1.0.0',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -151,7 +151,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
           _buildSearchSection(),
           if (_isLoading) ...[
             const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(8.0),
               child: CircularProgressIndicator(),
             ),
           ] else ...[
@@ -163,39 +163,43 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-    return Drawer(
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.inventory),
-            title: const Text('Tồn kho'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/tonkho');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Bán hàng'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/banhang');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app),
-            title: const Text('Đăng xuất'),
-            onTap: _logout,
-          ),
-          const Spacer(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Phiên bản: 1.0.0',
-              style: TextStyle(color: Colors.grey),
+    return Container(
+      margin: const EdgeInsets.only(top: 30), // Thêm margin-top 20px
+      child: Drawer(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Tồn kho'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/tonkho');
+              },
             ),
-          ),
-        ],
+            ListTile(
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('Bán hàng'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/banhang');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.exit_to_app),
+              title: const Text('Đăng xuất'),
+              onTap: _logout,
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Phiên bản: 1.0.0',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -391,38 +395,43 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(product['ten_sp'] ?? 'Chi tiết sản phẩm'),
+              title: const Text('Chi tiết tồn kho'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Tìm kiếm chi nhánh hoặc tồn kho',
-                        border: OutlineInputBorder(),
+                child: Container(
+                  constraints: const BoxConstraints(
+                      minWidth: 400), // Giới hạn chiều rộng
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Tìm kiếm chi nhánh',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (query) {
+                          setState(() {
+                            filteredBranchStocks = branchStocks.where((branch) {
+                              final branchName =
+                                  (branch['ten'] ?? '').toLowerCase();
+                              final stock =
+                                  branch['ton_kho']?.toString() ?? '0';
+                              return branchName.contains(query.toLowerCase()) ||
+                                  stock.contains(query);
+                            }).toList();
+                          });
+                        },
                       ),
-                      onChanged: (query) {
-                        setState(() {
-                          filteredBranchStocks = branchStocks.where((branch) {
-                            final branchName =
-                                (branch['ten'] ?? '').toLowerCase();
-                            final stock = branch['ton_kho']?.toString() ?? '0';
-                            return branchName.contains(query.toLowerCase()) ||
-                                stock.contains(query);
-                          }).toList();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    filteredBranchStocks.isEmpty
-                        ? const Text('Không tìm thấy kết quả nào')
-                        : Column(
-                            children: filteredBranchStocks.map((branch) {
-                              return _buildBranchDetails(branch);
-                            }).toList(),
-                          ),
-                  ],
+                      const SizedBox(height: 10),
+                      filteredBranchStocks.isEmpty
+                          ? const Text('Không tìm thấy kết quả nào')
+                          : Column(
+                              children: filteredBranchStocks.map((branch) {
+                                return _buildBranchDetails(branch);
+                              }).toList(),
+                            ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -443,6 +452,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Container(
+        constraints: const BoxConstraints(minWidth: 400),
         decoration: BoxDecoration(
           color: Colors.blue.shade50,
           borderRadius: BorderRadius.circular(8.0),
