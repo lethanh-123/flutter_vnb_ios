@@ -68,16 +68,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
         children: [
           _buildSearchSection(),
           _buildEmployeeAndCustomerSection(),
-          Visibility(
-            visible: _scanStatus.isNotEmpty,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                _scanStatus,
-                style: const TextStyle(color: Colors.blue),
-              ),
-            ),
-          ),
           _buildProductList(),
           _buildContinueButton(),
         ],

@@ -42,18 +42,36 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _productNameController = TextEditingController();
   final TextEditingController _sizeController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _productList = [];
   bool _isLoading = false;
   final List<Map<String, String>> _categoryList = [];
   final List<Map<String, String>> _branchList = [];
   String? _selectedCategory;
   String? _selectedBranch;
-  int page = 1;
+  int trang_tim_kiem = 1;
+  bool dung_tim_kiem = false;
   @override
   void initState() {
     super.initState();
     fetchBranches();
     fetchCategories();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoading &&
+        !dung_tim_kiem) {
+      _searchProducts(trang_tim_kiem);
+    }
   }
 
   Future<void> fetchBranches() async {
@@ -123,7 +141,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
           _categoryList.add({"id": "0", "name": "Tất cả"});
           _categoryList.addAll(categories);
           _selectedCategory = "0";
-          _searchProducts();
+          _searchProducts(trang_tim_kiem);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -313,7 +331,10 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
             SizedBox(
               height: 40.0,
               child: ElevatedButton(
-                onPressed: _searchProducts,
+                onPressed: () {
+                  _searchProducts(
+                      trang_tim_kiem); // Pass the updated page to the function
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   shape: RoundedRectangleBorder(
@@ -336,34 +357,60 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     return Expanded(
       child: _productList.isEmpty
           ? const Center(child: Text('Không có sản phẩm nào'))
-          : ListView.builder(
-              itemCount: _productList.length,
-              itemBuilder: (context, index) {
-                final product = _productList[index];
-                return ListTile(
-                  leading: product['thumb'] != null
-                      ? Image.network(
-                          product['thumb'] ?? '',
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        )
-                      : const Icon(Icons.image, size: 50),
-                  title: Text(product['ten_sp'] ?? ''),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (product['size'] != null &&
-                          product['size']!.isNotEmpty)
-                        Text('Size: ${product['size']}'),
-                      Text('Giá: ${product['gia']}'),
-                      Text('Tồn kho: ${product['ton_kho']}'),
-                    ],
-                  ),
-                  onTap: () =>
-                      _showProductDetails(product), // Hiển thị chi tiết
-                );
+          : NotificationListener<ScrollNotification>(
+              onNotification: (scrollInfo) {
+                if (scrollInfo.metrics.pixels >=
+                        scrollInfo.metrics.maxScrollExtent - 200 &&
+                    !_isLoading &&
+                    !dung_tim_kiem) {
+                  setState(() {
+                    _isLoading = true; // Start loading indicator
+                  });
+                  _searchProducts(trang_tim_kiem).then((_) {
+                    setState(() {
+                      _isLoading = false; // Stop loading indicator
+                    });
+                  });
+                }
+                return false;
               },
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _productList.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index < _productList.length) {
+                    final product = _productList[index];
+                    return ListTile(
+                      leading: product['thumb'] != null
+                          ? Image.network(
+                              product['thumb'] ?? '',
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            )
+                          : const Icon(Icons.image, size: 50),
+                      title: Text(product['ten_sp'] ?? ''),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (product['size'] != null &&
+                              product['size']!.isNotEmpty)
+                            Text('Size: ${product['size']}'),
+                          Text('Giá: ${product['gia']}'),
+                          Text('Tồn kho: ${product['ton_kho']}'),
+                        ],
+                      ),
+                      onTap: () => _showProductDetails(product),
+                    );
+                  } else {
+                    // Loading indicator at the end of the list
+                    return const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                },
+              ),
             ),
     );
   }
@@ -498,80 +545,96 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     );
   }
 
-  Future<void> _searchProducts() async {
+  Future<void> _searchProducts(int page) async {
+    if (page < 1) page = 1;
+
     setState(() {
       _isLoading = true;
     });
 
-    // Get branch key from shared preferences
-    final key_chi_nhanh = await Preferences.getKeyChiNhanh();
-    final user_key_app = await Preferences.getUserKeyApp();
-    // Prepare request data
-    final String searchName = _productNameController.text.trim();
-    final String searchSize = _sizeController.text.trim();
-    final String branch = _selectedBranch.toString();
-    final String category = _selectedCategory.toString();
+    if (page == 1) {
+      _productList.clear(); // Clear old data for the first page
+    }
 
-    // Request parameters
-    final Map<String, String> requestData = {
-      'tu_khoa': searchName.isEmpty
-          ? ''
-          : searchName, // Use empty string if null or empty
-      'size': searchSize.isEmpty ? '' : searchSize,
-      'chi_nhanh': branch.isEmpty ? '' : branch,
-      'danh_muc': category.isEmpty ? '' : category,
-      'page': page.toString(), // Specify the page number (1 in this case)
-      'key_chi_nhanh': key_chi_nhanh ?? '', // Ensure non-null value
-      'user_key_app': user_key_app ?? '',
-    };
-    debugPrint('debugPrintdasdf,$requestData');
     try {
-      // Call the API using ApiService
-      final response =
-          await ApiService.callApi('get_ton_kho_chung', requestData);
+      // Get shared preferences values
+      final key_chi_nhanh = await Preferences.getKeyChiNhanh();
+      final user_key_app = await Preferences.getUserKeyApp();
 
-      setState(() {
-        _isLoading = false;
+      // Prepare request data
+      final String searchName = _productNameController.text.trim();
+      final String searchSize = _sizeController.text.trim();
+      final String branch = _selectedBranch.toString();
+      final String category = _selectedCategory.toString();
 
-        if (response != null && response['list'] != null) {
-          // Convert the dynamic list into List<Map<String, dynamic>>
-          final List<Map<String, dynamic>> productList =
-              List<Map<String, dynamic>>.from(response['list']);
+      final Map<String, String> requestData = {
+        'tu_khoa': searchName,
+        'size': searchSize,
+        'chi_nhanh': branch,
+        'danh_muc': category,
+        'page': page.toString(),
+        'key_chi_nhanh': key_chi_nhanh ?? '',
+        'user_key_app': user_key_app ?? '',
+      };
 
-          // Log the product list
-          debugPrint('Danh sách sản phẩm tồn kho: $productList');
-          final NumberFormat currencyFormat =
-              NumberFormat.simpleCurrency(locale: 'vi_VN');
-          // Clear old products and add new ones
-          _productList.clear();
-          _productList.addAll(productList.map((product) {
-            return {
-              'ten_sp': product['ten_sp']?.toString() ?? '',
-              'size': product['size']?.toString() ?? '',
-              'ton_kho': product['total']?.toString() ?? '',
-              'thumb': product['thumb']?.toString() ?? '',
-              'gia': product['gia'] != null
-                  ? currencyFormat.format(
-                      double.tryParse(product['gia']?.toString() ?? '0') ?? 0)
-                  : '',
-              'cn_list': product['cn_list']?.toString() ?? '',
-            };
-          }).toList());
-          page++;
-        } else {
-          // Show message if no products found or API error
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Không tìm thấy dữ liệu hoặc lỗi API')),
-          );
-        }
-      });
+      debugPrint('Request data: $requestData');
+
+      if (!dung_tim_kiem) {
+        // API call
+        final response =
+            await ApiService.callApi('get_ton_kho_chung', requestData);
+
+        setState(() {
+          _isLoading = false;
+
+          if (response != null && response['list'] != null) {
+            final List<Map<String, dynamic>> productList =
+                List<Map<String, dynamic>>.from(response['list']);
+
+            if (productList.isEmpty) {
+              // No more data available
+              dung_tim_kiem = true;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Không còn dữ liệu để tải thêm.')),
+              );
+            } else {
+              // Add fetched data to product list
+              final NumberFormat currencyFormat =
+                  NumberFormat.simpleCurrency(locale: 'vi_VN');
+
+              _productList.addAll(productList.map((product) {
+                return {
+                  'ten_sp': product['ten_sp']?.toString() ?? '',
+                  'size': product['size']?.toString() ?? '',
+                  'ton_kho': product['total']?.toString() ?? '',
+                  'thumb': product['thumb']?.toString() ?? '',
+                  'gia': product['gia'] != null
+                      ? currencyFormat.format(
+                          double.tryParse(product['gia']?.toString() ?? '0') ??
+                              0)
+                      : '',
+                  'cn_list': product['cn_list']?.toString() ?? '',
+                };
+              }).toList());
+
+              trang_tim_kiem++; // Increment the page number
+              dung_tim_kiem = false;
+            }
+          } else {
+            // No data or API error
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Không tìm thấy dữ liệu hoặc lỗi API')),
+            );
+          }
+        });
+      }
     } catch (error) {
       setState(() {
         _isLoading = false;
       });
 
-      // Show error dialog if API call fails
+      // Handle API error
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -585,7 +648,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
           ],
         ),
       );
-      debugPrint('Lỗi khi gọi API: $error');
+      debugPrint('API error: $error');
     }
   }
 
