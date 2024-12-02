@@ -3,6 +3,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'api_service.dart';
 import 'preferences.dart';
+import 'package:blue_thermal_printer/blue_thermal_printer.dart'; // Import BlueThermalPrinter
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
+    as bluetooth_serial; // Alias flutter_bluetooth_serial
+import 'package:html/parser.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String maPhieu;
@@ -21,6 +25,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted);
     _loadInvoiceDetails();
   }
 
@@ -46,8 +52,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         setState(() {
           _contentHtml = response['content'];
         });
-
-        // Load content vào WebView
+        debugPrint("_contentHtml $_contentHtml");
         _webViewController.loadHtmlString(_contentHtml);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -62,28 +67,77 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     }
   }
 
-  void _printInvoice() {
-    // Thực hiện in hóa đơn (tùy theo tích hợp với máy in Bluetooth)
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("In hóa đơn"),
-        content: Text("Bạn có muốn in hóa đơn ${widget.maPhieu}?"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Thêm logic gọi in hóa đơn tại đây
-            },
-            child: Text("In"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text("Hủy"),
-          ),
-        ],
-      ),
-    );
+  Future<void> _printInvoice() async {
+    try {
+      // Lấy máy in đã lưu
+      String? connectedPrinter = await Preferences.getMayin();
+      if (connectedPrinter == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không có máy in nào được kết nối')),
+        );
+        return;
+      }
+
+      // Khởi tạo BlueThermalPrinter
+      final bluetooth = BlueThermalPrinter.instance;
+      bool? isConnected = await bluetooth.isConnected;
+
+      if (isConnected != true) {
+        // Lấy danh sách các thiết bị đã ghép nối từ flutter_bluetooth_serial
+        List<bluetooth_serial.BluetoothDevice> devices = await bluetooth_serial
+            .FlutterBluetoothSerial.instance
+            .getBondedDevices();
+        debugPrint("device $connectedPrinter");
+
+        // Tìm thiết bị khớp với địa chỉ đã lưu
+        bluetooth_serial.BluetoothDevice? device;
+        try {
+          device = devices.firstWhere((d) => d.address == connectedPrinter);
+        } catch (e) {
+          debugPrint("Error finding device: $e");
+          device = null;
+        }
+
+        if (device == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không tìm thấy máy in Bluetooth')),
+          );
+        } else {
+          debugPrint("Found device: ${device.name} - ${device.address}");
+          // Tiến hành kết nối với máy in
+          if (device != null) {
+            // Chuyển đổi sang BluetoothDevice của BlueThermalPrinter
+            final printerDevice = BluetoothDevice(
+              device.name ?? 'Unknown',
+              device.address,
+            );
+
+            // Kết nối với máy in
+            await bluetooth.connect(printerDevice);
+          }
+        }
+      }
+
+      // Parse và in nội dung HTML
+      final document = parse(_contentHtml);
+      final plainText = document.body?.text ?? "";
+
+      bluetooth.printNewLine();
+      bluetooth.printCustom("Chi tiết hóa đơn", 1, 1); // Header
+      bluetooth.printNewLine();
+      bluetooth.printCustom(plainText, 0, 0); // Content
+      bluetooth.printNewLine();
+      bluetooth.paperCut(); // Paper cut nếu được hỗ trợ
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('In hóa đơn thành công!')),
+      );
+    } catch (e) {
+      debugPrint('Lỗi khi in hóa đơn: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi in hóa đơn: $e')),
+      );
+    }
   }
 
   @override
@@ -100,14 +154,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
       ),
       body: _contentHtml.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : WebViewWidget(
-              controller: WebViewController()
-                ..loadHtmlString(Uri.dataFromString(
-                  _contentHtml,
-                  mimeType: 'text/html',
-                  encoding: utf8,
-                ).toString()),
-            ),
+          : WebViewWidget(controller: _webViewController),
     );
   }
 }

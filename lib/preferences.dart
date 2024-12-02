@@ -26,6 +26,11 @@ class Preferences {
     return prefs.getInt('admin_id');
   }
 
+  static Future<String?> getMayin() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('connected_printer_address');
+  }
+
   static Future<String?> getKeyChiNhanh() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('key_chi_nhanh');
