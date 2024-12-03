@@ -48,6 +48,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
           // Add fetched data to customer list
           customerList.addAll(customersList.map((customer) {
             return {
+              'id': customer['id']?.toString() ?? '',
               'ten': customer['ten']?.toString() ?? '',
               'so_dt': customer['so_dt']?.toString() ?? '',
               'email': customer['email']?.toString() ?? '',
@@ -85,7 +86,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(3.0),
+        padding: const EdgeInsets.all(5.0),
         child: Column(
           children: [
             TextField(
@@ -122,9 +123,38 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 Text('CN: ${customer['ten_cn']}'),
                             ],
                           ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () async {
+                              // Navigate to the edit customer screen
+                              final updatedCustomer = await Navigator.pushNamed(
+                                context,
+                                '/edit_khach_hang',
+                                arguments: {
+                                  'id': customer['id'],
+                                  'ten': customer['ten'],
+                                  'so_dt': customer['so_dt'],
+                                  'email': customer['email'],
+                                  'dia_chi': customer['dia_chi'],
+                                  'ten_cn': customer['ten_cn'],
+                                },
+                              );
+
+                              // If a customer was updated, refresh the list
+                              if (updatedCustomer != null) {
+                                setState(() {
+                                  // Update the specific customer in the list
+                                  customerList[index] = updatedCustomer;
+                                });
+                              }
+                            },
+                          ),
                           onTap: () {
                             // Handle customer selection
-                            Navigator.pop(context, customer);
+                            Navigator.pop(context, {
+                              'ten': customer['ten'],
+                              'so_dt': customer['so_dt'],
+                            });
                           },
                         );
                       },

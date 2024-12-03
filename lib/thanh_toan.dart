@@ -45,7 +45,7 @@ class PaymentPage extends StatelessWidget {
               onPressed: () {
                 // Thêm logic thanh toán tại đây
               },
-              child: const Text('Hoàn tất Thanh Toán'),
+              child: const Text('Hoàn Thành Thanh Toán'),
             ),
           ],
         ),

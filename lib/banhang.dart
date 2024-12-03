@@ -8,30 +8,6 @@ import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'thanh_toan.dart';
 import 'danh_sach_khach_hang.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Danh sách sản phẩm',
-      theme: ThemeData(
-        primarySwatch: Colors.deepOrange,
-      ),
-      initialRoute: '/tonkho', // Đổi initialRoute
-      routes: {
-        '/banhang': (context) =>
-            const BanHangScreen(), // Đổi route này thành banhang.dart
-        '/login': (context) => const LoginScreen(),
-      },
-    );
-  }
-}
-
 class BanHangScreen extends StatefulWidget {
   const BanHangScreen({super.key});
 
@@ -530,7 +506,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
     if (result != null) {
       setState(() {
-        _selectedCustomer = result['ten']; // Use customer name or other data
+        _selectedCustomer =
+            "Khách hàng: ${result['ten']} - ${result['so_dt']}"; // Gộp tên và số điện thoại
       });
     }
   }

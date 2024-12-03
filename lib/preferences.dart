@@ -21,6 +21,11 @@ class Preferences {
     return null;
   }
 
+  static Future<String?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_info');
+  }
+
   static Future<int?> getAdminId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('admin_id');
