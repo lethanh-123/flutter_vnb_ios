@@ -176,7 +176,14 @@ class _InvoiceListScreenState extends State<InvoiceListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Danh sách hóa đơn'),
+        title: const Text('Danh Sách Hóa Đơn'),
+        centerTitle: true,
+        backgroundColor: Colors.black, // Nền màu đen
+        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        titleTextStyle: const TextStyle(
+            color: Colors.white, // Chữ màu trắng
+            fontSize: 22,
+            fontWeight: FontWeight.bold),
       ),
       drawer: _buildDrawer(context),
       body: Column(

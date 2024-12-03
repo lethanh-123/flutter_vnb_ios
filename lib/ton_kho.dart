@@ -159,9 +159,19 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('Tồn Kho'),
+      //   centerTitle: true,
+      // ),
       appBar: AppBar(
         title: const Text('Tồn Kho'),
         centerTitle: true,
+        backgroundColor: Colors.black, // Nền màu đen
+        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        titleTextStyle: const TextStyle(
+            color: Colors.white, // Chữ màu trắng
+            fontSize: 22,
+            fontWeight: FontWeight.bold),
       ),
       drawer: _buildDrawer(context),
       body: Stack(

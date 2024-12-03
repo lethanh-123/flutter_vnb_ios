@@ -82,7 +82,14 @@ class _BanHangScreenState extends State<BanHangScreen> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Bán hàng'),
+        title: const Text('Bán Hàng'),
+        centerTitle: true,
+        backgroundColor: Colors.black, // Nền màu đen
+        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        titleTextStyle: const TextStyle(
+            color: Colors.white, // Chữ màu trắng
+            fontSize: 22,
+            fontWeight: FontWeight.bold),
       ),
       drawer: _buildDrawer(context),
       body: Column(
@@ -240,8 +247,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
               setState(() {
                 if (isSelected) {
                   _selectedProducts.remove(index);
+                  product['so_luong'] = 0; // Đặt lại số lượng khi bỏ chọn
                 } else {
                   _selectedProducts.add(index);
+                  product['so_luong'] = 0; // Khởi tạo số lượng là 0
                 }
               });
             },
@@ -310,6 +319,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                   IconButton(
                                     icon:
                                         const Icon(Icons.remove_circle_outline),
+                                    iconSize: 30,
                                     onPressed: () {
                                       setState(() {
                                         product['so_luong'] =
@@ -320,9 +330,13 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                       });
                                     },
                                   ),
-                                  Text('${product['so_luong'] ?? 1}'),
+                                  Text(
+                                    '${product['so_luong'] ?? 0}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                   IconButton(
                                     icon: const Icon(Icons.add_circle_outline),
+                                    iconSize: 30,
                                     onPressed: () {
                                       setState(() {
                                         product['so_luong'] =

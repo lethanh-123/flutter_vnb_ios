@@ -16,7 +16,7 @@ class PaymentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hóa đơn'),
+        title: const Text('Hóa Đơn'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
