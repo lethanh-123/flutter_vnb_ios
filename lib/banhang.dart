@@ -5,6 +5,7 @@ import 'package:flutter_vnb_ios/api_service.dart';
 import 'preferences.dart';
 import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'thanh_toan.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter App',
+      title: 'Danh sách sản phẩm',
       theme: ThemeData(
         primarySwatch: Colors.deepOrange,
       ),
@@ -263,8 +264,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
                           children: [
                             Image.network(
                               product['photo'] ?? '',
-                              width: 50,
-                              height: 50,
+                              width: 80,
+                              height: 80,
                               fit: BoxFit.cover,
                             ),
                             if (isSelected)
@@ -293,43 +294,49 @@ class _BanHangScreenState extends State<BanHangScreen> {
                           ),
                         ),
                         Text('${product['ma_vach']}'),
-                        Text(
-                          'Giá: ${formatCurrency(product['don_gia'])}',
-                          style: const TextStyle(
-                            color: Colors.red,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Giá: ${formatCurrency(product['don_gia'])}',
+                              style: const TextStyle(
+                                color: Colors.red,
+                              ),
+                            ),
+                            if (isSelected)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  IconButton(
+                                    icon:
+                                        const Icon(Icons.remove_circle_outline),
+                                    onPressed: () {
+                                      setState(() {
+                                        product['so_luong'] =
+                                            (product['so_luong'] ?? 1) - 1;
+                                        if (product['so_luong'] < 1) {
+                                          product['so_luong'] = 1;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  Text('${product['so_luong'] ?? 1}'),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    onPressed: () {
+                                      setState(() {
+                                        product['so_luong'] =
+                                            (product['so_luong'] ?? 1) + 1;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  if (isSelected)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: () {
-                            setState(() {
-                              product['so_luong'] =
-                                  (product['so_luong'] ?? 1) - 1;
-                              if (product['so_luong'] < 1) {
-                                product['so_luong'] = 1;
-                              }
-                            });
-                          },
-                        ),
-                        Text('${product['so_luong'] ?? 1}'),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
-                          onPressed: () {
-                            setState(() {
-                              product['so_luong'] =
-                                  (product['so_luong'] ?? 1) + 1;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
                 ],
               ),
             ),
@@ -340,18 +347,57 @@ class _BanHangScreenState extends State<BanHangScreen> {
   }
 
   Widget _buildContinueButton() {
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 8.0), // Add padding if needed
-      child: SizedBox(
-        width: double.infinity, // Make the button take up the full width
-        child: ElevatedButton(
-          onPressed: _onContinue,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-          child: const Text('Tiếp tục',
-              style: TextStyle(
-                color: Colors.white,
-              )),
+    return SizedBox(
+      width: double.infinity, // Chiều rộng full màn hình
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepOrange, // Màu nền của nút
+          padding:
+              const EdgeInsets.symmetric(vertical: 5), // Padding để nút đẹp hơn
+        ),
+        onPressed: () {
+          num totalQuantity = 0;
+
+          for (var product in _products) {
+            totalQuantity += product['so_luong'] ?? 0;
+          }
+
+          if (totalQuantity == 0) {
+            // Hiển thị thông báo nếu không có sản phẩm nào được chọn
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Thông báo'),
+                  content: const Text('Vui lòng chọn ít nhất một sản phẩm.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            // Chuyển sang trang thanh toán nếu có sản phẩm được chọn
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentPage(
+                  selectedProducts: _products
+                      .where((product) => (product['so_luong'] ?? 0) > 0)
+                      .toList(),
+                ),
+              ),
+            );
+          }
+        },
+        child: const Text(
+          'Tiếp tục',
+          style: TextStyle(fontSize: 16, color: Colors.white),
         ),
       ),
     );

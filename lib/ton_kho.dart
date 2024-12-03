@@ -381,8 +381,8 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
                       leading: product['thumb'] != null
                           ? Image.network(
                               product['thumb'] ?? '',
-                              width: 50,
-                              height: 50,
+                              width: 60,
+                              height: 100,
                               fit: BoxFit.cover,
                             )
                           : const Icon(Icons.image, size: 50),
@@ -550,7 +550,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     });
 
     if (page == 1) {
-      _productList.clear(); 
+      _productList.clear();
     }
 
     try {
