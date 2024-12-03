@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_vnb_ios/api_service.dart';
 import 'preferences.dart';
 import 'package:intl/intl.dart';
+import 'them_khach_hang.dart';
 
 void main() {
   runApp(const TonKhoApp());
@@ -25,6 +26,7 @@ class TonKhoApp extends StatelessWidget {
         '/': (context) => const TonKhoScreen(),
         '/tonkho': (context) => const TonKhoScreen(),
         '/banhang': (context) => const BanHangScreen(),
+        '/them_khach_hang': (context) => AddCustomerScreen()
       },
     );
   }

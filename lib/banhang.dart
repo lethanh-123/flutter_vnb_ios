@@ -6,6 +6,7 @@ import 'preferences.dart';
 import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'thanh_toan.dart';
+import 'danh_sach_khach_hang.dart';
 
 void main() {
   runApp(const MyApp());
@@ -521,8 +522,17 @@ class _BanHangScreenState extends State<BanHangScreen> {
     }
   }
 
-  void _selectCustomer() {
-    setState(() => _selectedCustomer = 'Khách hàng A');
+  void _selectCustomer() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CustomerListScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedCustomer = result['ten']; // Use customer name or other data
+      });
+    }
   }
 
   void _selectEmployee() {
