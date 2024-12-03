@@ -192,7 +192,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
             child: ElevatedButton(
               onPressed: _selectEmployee,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: Text(_selectedEmployee),
+              child: Text(_selectedEmployee,
+                  style: const TextStyle(
+                    color: Colors.white,
+                  )),
             ),
           ),
           const SizedBox(height: 3.0),
@@ -200,8 +203,12 @@ class _BanHangScreenState extends State<BanHangScreen> {
             alignment: Alignment.centerLeft, // Align button to the left
             child: ElevatedButton(
               onPressed: _selectCustomer,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: Text(_selectedCustomer),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+              child: Text(_selectedCustomer,
+                  style: const TextStyle(
+                    color: Colors.white,
+                  )),
             ),
           ),
         ],
@@ -212,37 +219,120 @@ class _BanHangScreenState extends State<BanHangScreen> {
   Widget _buildProductList() {
     return Expanded(
       child: ListView.builder(
-        controller: _scrollController, // Attach the scroll controller
+        controller: _scrollController,
         itemCount: _products.length + 1, // Add 1 for the loading indicator
         itemBuilder: (context, index) {
           if (index == _products.length) {
-            // If this is the last item, show the loading indicator
             return dung_tim_kiem
-                ? const SizedBox.shrink() // Hide if no more data
+                ? const SizedBox.shrink()
                 : const Padding(
                     padding: EdgeInsets.all(8.0),
                     child: Center(child: CircularProgressIndicator()),
                   );
           }
+
           final product = _products[index];
-          return ListTile(
-            leading: product['photo'] != null
-                ? Image.network(
-                    product['photo'] ?? '',
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  )
-                : const Icon(Icons.image, size: 50),
-            title: Text(product['ten_sp'] ?? ''),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${product['ma_vach']}'),
-                Text('Giá: ${formatCurrency(product['don_gia'])}'),
-              ],
+          final isSelected = _selectedProducts.contains(index);
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (isSelected) {
+                  _selectedProducts.remove(index);
+                } else {
+                  _selectedProducts.add(index);
+                }
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.green.withOpacity(0.3)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected ? Colors.green : Colors.grey.shade300,
+                ),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  product['photo'] != null
+                      ? Stack(
+                          children: [
+                            Image.network(
+                              product['photo'] ?? '',
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            ),
+                            if (isSelected)
+                              const Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 20,
+                                ),
+                              ),
+                          ],
+                        )
+                      : const Icon(Icons.image, size: 50),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product['ten_sp'] ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text('${product['ma_vach']}'),
+                        Text(
+                          'Giá: ${formatCurrency(product['don_gia'])}',
+                          style: const TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          onPressed: () {
+                            setState(() {
+                              product['so_luong'] =
+                                  (product['so_luong'] ?? 1) - 1;
+                              if (product['so_luong'] < 1) {
+                                product['so_luong'] = 1;
+                              }
+                            });
+                          },
+                        ),
+                        Text('${product['so_luong'] ?? 1}'),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline),
+                          onPressed: () {
+                            setState(() {
+                              product['so_luong'] =
+                                  (product['so_luong'] ?? 1) + 1;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
-            onTap: () => {},
           );
         },
       ),
@@ -258,7 +348,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
         child: ElevatedButton(
           onPressed: _onContinue,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-          child: const Text('Tiếp tục'),
+          child: const Text('Tiếp tục',
+              style: TextStyle(
+                color: Colors.white,
+              )),
         ),
       ),
     );
