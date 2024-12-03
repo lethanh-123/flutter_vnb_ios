@@ -41,6 +41,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, dynamic>> _products = [];
+  final List<int> _selectedProducts = [];
   bool _isFetchingProducts = false;
   bool _isScanning = false;
   String _selectedCustomer = 'Chọn khách hàng';
@@ -154,7 +155,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
   Widget _buildSearchSection() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(3.0),
       child: Row(
         children: [
           Expanded(
@@ -181,19 +182,27 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
   Widget _buildEmployeeAndCustomerSection() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.all(3.0),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Align all widgets to the start (left)
         children: [
-          ElevatedButton(
-            onPressed: _selectCustomer,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text(_selectedCustomer),
+          Align(
+            alignment: Alignment.centerLeft, // Align button to the left
+            child: ElevatedButton(
+              onPressed: _selectEmployee,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: Text(_selectedEmployee),
+            ),
           ),
-          ElevatedButton(
-            onPressed: _selectEmployee,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: Text(_selectedEmployee),
+          const SizedBox(height: 3.0),
+          Align(
+            alignment: Alignment.centerLeft, // Align button to the left
+            child: ElevatedButton(
+              onPressed: _selectCustomer,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: Text(_selectedCustomer),
+            ),
           ),
         ],
       ),
@@ -217,9 +226,23 @@ class _BanHangScreenState extends State<BanHangScreen> {
           }
           final product = _products[index];
           return ListTile(
-            title: Text(product['ten_sp']),
-            subtitle: Text('Giá: ' + formatCurrency(product['don_gia'])),
-            onTap: () {},
+            leading: product['photo'] != null
+                ? Image.network(
+                    product['photo'] ?? '',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                  )
+                : const Icon(Icons.image, size: 50),
+            title: Text(product['ten_sp'] ?? ''),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${product['ma_vach']}'),
+                Text('Giá: ${formatCurrency(product['don_gia'])}'),
+              ],
+            ),
+            onTap: () => {},
           );
         },
       ),
@@ -227,10 +250,17 @@ class _BanHangScreenState extends State<BanHangScreen> {
   }
 
   Widget _buildContinueButton() {
-    return ElevatedButton(
-      onPressed: _onContinue,
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-      child: const Text('Tiếp tục'),
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 8.0), // Add padding if needed
+      child: SizedBox(
+        width: double.infinity, // Make the button take up the full width
+        child: ElevatedButton(
+          onPressed: _onContinue,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+          child: const Text('Tiếp tục'),
+        ),
+      ),
     );
   }
 
