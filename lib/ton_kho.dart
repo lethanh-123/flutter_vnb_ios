@@ -164,17 +164,14 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
         centerTitle: true,
       ),
       drawer: _buildDrawer(context),
-      body: Column(
+      body: Stack(
         children: [
-          _buildSearchSection(),
-          if (_isLoading) ...[
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(),
-            ),
-          ] else ...[
-            _buildProductList(),
-          ],
+          Column(
+            children: [
+              _buildSearchSection(),
+              Expanded(child: _buildProductList()),
+            ],
+          ), // Loading chỉ xuất hiện trên danh sách
         ],
       ),
     );
@@ -553,7 +550,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     });
 
     if (page == 1) {
-      _productList.clear(); // Clear old data for the first page
+      _productList.clear(); 
     }
 
     try {
@@ -617,7 +614,7 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
                 };
               }).toList());
 
-              trang_tim_kiem++; // Increment the page number
+              trang_tim_kiem = page + 1; // Increment the page number
               dung_tim_kiem = false;
             }
           } else {

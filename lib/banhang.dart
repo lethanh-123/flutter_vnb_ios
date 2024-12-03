@@ -47,13 +47,32 @@ class _BanHangScreenState extends State<BanHangScreen> {
   String _selectedEmployee = 'Chọn nhân viên bán hàng';
   String _scanStatus = 'Scan status';
   final int _currentPage = 1;
-
+  final ScrollController _scrollController = ScrollController();
+  int trang_tim_kiem = 1;
+  bool dung_tim_kiem = false;
+  bool _isLoading = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _onSearch();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isFetchingProducts &&
+        !dung_tim_kiem) {
+      _onSearch(page: trang_tim_kiem);
+    }
   }
 
   @override
@@ -149,7 +168,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: _onSearch,
+            onPressed: () => _onSearch(page: trang_tim_kiem),
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
@@ -183,19 +202,27 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
   Widget _buildProductList() {
     return Expanded(
-      child: _isFetchingProducts
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _products.length,
-              itemBuilder: (context, index) {
-                final product = _products[index];
-                return ListTile(
-                  title: Text(product['ten_sp']),
-                  subtitle: Text('Giá: ' + formatCurrency(product['don_gia'])),
-                  onTap: () {},
-                );
-              },
-            ),
+      child: ListView.builder(
+        controller: _scrollController, // Attach the scroll controller
+        itemCount: _products.length + 1, // Add 1 for the loading indicator
+        itemBuilder: (context, index) {
+          if (index == _products.length) {
+            // If this is the last item, show the loading indicator
+            return dung_tim_kiem
+                ? const SizedBox.shrink() // Hide if no more data
+                : const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+          }
+          final product = _products[index];
+          return ListTile(
+            title: Text(product['ten_sp']),
+            subtitle: Text('Giá: ' + formatCurrency(product['don_gia'])),
+            onTap: () {},
+          );
+        },
+      ),
     );
   }
 
@@ -207,16 +234,40 @@ class _BanHangScreenState extends State<BanHangScreen> {
     );
   }
 
-  void _onSearch() async {
-    final key_chi_nhanh = await Preferences.getKeyChiNhanh();
-    try {
-      setState(() => _isFetchingProducts = true);
+  Future<void> _onSearch({int page = 1}) async {
+    if (page < 1) page = 1; // Ensure page number starts at 1
 
-      final response = await ApiService.callApi('list_sp_xuat', {
-        'tu_khoa': _searchController.text,
-        'page': _currentPage,
-        'key_chi_nhanh': key_chi_nhanh,
-      });
+    setState(() {
+      _isFetchingProducts = true;
+      if (page == 1) {
+        _products.clear(); // Clear old data for the first page
+        dung_tim_kiem = false; // Reset the flag to allow fetching
+      }
+    });
+
+    if (dung_tim_kiem) {
+      // Stop loading if no more data is available
+      setState(() => _isFetchingProducts = false);
+      return;
+    }
+
+    try {
+      // Get shared preferences values
+      final key_chi_nhanh = await Preferences.getKeyChiNhanh();
+      final user_key_app = await Preferences.getUserKeyApp();
+
+      // Prepare request data
+      final Map<String, String> requestData = {
+        'tu_khoa': _searchController.text.trim(),
+        'page': page.toString(),
+        'key_chi_nhanh': key_chi_nhanh ?? '',
+        'user_key_app': user_key_app ?? '',
+      };
+
+      debugPrint('Request data: $requestData');
+
+      // API call
+      final response = await ApiService.callApi('list_sp_xuat', requestData);
 
       setState(() {
         _isFetchingProducts = false;
@@ -224,9 +275,19 @@ class _BanHangScreenState extends State<BanHangScreen> {
         if (response != null && response['list'] != null) {
           final List<Map<String, dynamic>> productList =
               List<Map<String, dynamic>>.from(response['list']);
-          _products.clear();
-          _products.addAll(productList);
+
+          if (productList.isEmpty) {
+            // No more data available
+            dung_tim_kiem = true;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không còn dữ liệu để tải thêm.')),
+            );
+          } else {
+            _products.addAll(productList);
+            trang_tim_kiem = page + 1; // Increment the page number
+          }
         } else {
+          // No data or API error
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text('Không tìm thấy dữ liệu hoặc lỗi API')),
@@ -235,9 +296,22 @@ class _BanHangScreenState extends State<BanHangScreen> {
       });
     } catch (error) {
       setState(() => _isFetchingProducts = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi tìm kiếm: $error')),
+
+      // Handle API error
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Lỗi'),
+          content: Text(error.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
       );
+      debugPrint('API error: $error');
     }
   }
 
