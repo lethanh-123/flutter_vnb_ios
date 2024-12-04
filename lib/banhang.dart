@@ -30,6 +30,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
   bool _isLoading = false;
+  bool _isEmployeeSelected = false;
   @override
   void initState() {
     super.initState();
@@ -158,42 +159,49 @@ class _BanHangScreenState extends State<BanHangScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
-            onPressed: _startBarcodeScanning,
+            onPressed: () => _startBarcodeScanning(false),
           ),
         ],
       ),
     );
+  }
+
+  void _handleEmployeeSelection() {
+    _startBarcodeScanning(true); // Quét mã QR trước
   }
 
   Widget _buildEmployeeAndCustomerSection() {
     return Padding(
       padding: const EdgeInsets.all(3.0),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start, // Align all widgets to the start (left)
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Align(
-            alignment: Alignment.centerLeft, // Align button to the left
+            alignment: Alignment.centerLeft,
             child: ElevatedButton(
-              onPressed: _selectEmployee,
+              onPressed: _handleEmployeeSelection, // Refactored async call
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: Text(_selectedEmployee,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  )),
+              child: Text(
+                _selectedEmployee.isNotEmpty
+                    ? _selectedEmployee
+                    : 'Chọn nhân viên',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ),
           const SizedBox(height: 3.0),
           Align(
-            alignment: Alignment.centerLeft, // Align button to the left
+            alignment: Alignment.centerLeft,
             child: ElevatedButton(
               onPressed: _selectCustomer,
               style:
                   ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-              child: Text(_selectedCustomer,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  )),
+              child: Text(
+                _selectedCustomer.isNotEmpty
+                    ? _selectedCustomer
+                    : 'Chọn khách hàng',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ),
         ],
@@ -201,6 +209,162 @@ class _BanHangScreenState extends State<BanHangScreen> {
     );
   }
 
+  String GiaLapMaCode(String ma_code) {
+    if (ma_code == "E283E0E02000F8800C733855") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E4AC2B5";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C773044") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008A49CA0B";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C733455") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008A49CA23";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C764048") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498998";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C764647") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E49897C";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C74424E") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498964";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C733E53") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498948";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C774444") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498900";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C772E44") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E4988B8";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C772C45") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E4988D0";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C773A44") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498864";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C733255") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E49884C";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C733654") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E4988A0";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C743C50") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498884";
+      return ma_code;
+    }
+    if (ma_code == "E200470D69C06821089C0114") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E498930";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C671618") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37B155E";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C774946") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37B5B1E";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C69140F") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37AAD2E";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C734757") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37AFBFE";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C6B1A09") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280F302000000008E4988E8";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C734A55") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37AFB0E";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C734355") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37AAD3E";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C774D47") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37A93CE";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C774B47") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37A93DE";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C774546") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37BCD3F";
+      return ma_code;
+    }
+    if (ma_code == "E283E0E02000F8800C734C55") {
+      debugPrint("Thay ma code $ma_code");
+      ma_code = "E280117000000215C37BB3DF";
+      return ma_code;
+    }
+    return ma_code;
+  }
+
+  void _selectCustomer() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CustomerListScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedCustomer =
+            "Khách hàng: ${result['ten']} - ${result['so_dt']}"; // Gộp tên và số điện thoại
+      });
+    }
+  }
+
+  void _selectEmployee() {
+    setState(() {
+      _selectedEmployee = employeeName; // Update selected employee name
+    });
+  }
+
+  String employeeName = '';
+  String? _scannedCode; // Biến lưu mã QR quét được
   Widget _buildProductList() {
     return Expanded(
       child: ListView.builder(
@@ -475,7 +639,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
     }
   }
 
-  void _startBarcodeScanning() async {
+  void _startBarcodeScanning(bool quet_nv) async {
     final barcode = await FlutterBarcodeScanner.scanBarcode(
       "#ff6666",
       "Hủy",
@@ -485,35 +649,50 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
     if (barcode != "-1") {
       setState(() => _isScanning = true);
-      final response =
-          await ApiService.callApi('get_chip_code', {'ma_code': barcode});
-      setState(() {
-        _isScanning = false;
-        if (response != null && response['success'] == true) {
-          _scanStatus = 'Đã quét thành công: ${response['product']['name']}';
-        } else {
-          _scanStatus = 'Không tìm thấy sản phẩm: $barcode';
+      if (quet_nv) {
+        //Gọi hàm quét nhân viên ở đây
+        try {
+          final String? user_key_app =
+              await Preferences.get_user_info("user_key_app");
+          final String? keyChiNhanh = await Preferences.getKeyChiNhanh();
+
+          if (user_key_app == null || keyChiNhanh == null || barcode == null) {
+            throw Exception('Thông tin không đầy đủ hoặc chưa quét mã QR.');
+          }
+          var header = {
+            'key_chi_nhanh': keyChiNhanh,
+            'user_key_app': user_key_app,
+            'ma_vach': barcode, // Gửi mã QR quét được
+          };
+          debugPrint(header.toString());
+          final response =
+              await ApiService.callApi('check_ma_nhan_vien', header);
+
+          if (response != null && response['loi'] == 0) {
+            setState(() {
+              employeeName = response['ho_ten'] ?? '';
+              _selectedEmployee = employeeName;
+            });
+          } else {
+            throw Exception(response?['txt_loi'] ?? 'Lỗi không xác định.');
+          }
+        } catch (error) {
+          debugPrint('Lỗi khi lấy dữ liệu nhân viên: $error');
+          throw error;
         }
-      });
+      } else {
+        final response =
+            await ApiService.callApi('get_chip_code', {'ma_code': barcode});
+        setState(() {
+          _isScanning = false;
+          if (response != null && response['success'] == true) {
+            _scanStatus = 'Đã quét thành công: ${response['product']['name']}';
+          } else {
+            _scanStatus = 'Không tìm thấy sản phẩm: $barcode';
+          }
+        });
+      }
     }
-  }
-
-  void _selectCustomer() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CustomerListScreen()),
-    );
-
-    if (result != null) {
-      setState(() {
-        _selectedCustomer =
-            "Khách hàng: ${result['ten']} - ${result['so_dt']}"; // Gộp tên và số điện thoại
-      });
-    }
-  }
-
-  void _selectEmployee() {
-    setState(() => _selectedEmployee = 'Nhân viên A');
   }
 
   void _onContinue() {

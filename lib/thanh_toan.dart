@@ -31,7 +31,7 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   void initState() {
     super.initState();
-    checkQuaTang();
+   // checkQuaTang();
     _calculateTotalAmount();
   }
 
@@ -74,6 +74,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Future<void> checkQuaTang() async {
+    debugPrint("checkQuaTang 1");
     try {
       String? keyChiNhanh = await Preferences.getKeyChiNhanh();
 
@@ -94,6 +95,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
           if (loi == 0 && data is List && data.isNotEmpty) {
             for (var item in data) {
+              
               var quaTangList = item['qua_tang_list'];
               if (quaTangList != null && quaTangList is Map) {
                 String ghiChu = quaTangList['ghi_chu'] ?? '';
@@ -101,12 +103,7 @@ class _PaymentPageState extends State<PaymentPage> {
               }
             }
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    txtLoi.isNotEmpty ? txtLoi : 'Không có quà tặng phù hợp.'),
-              ),
-            );
+           
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

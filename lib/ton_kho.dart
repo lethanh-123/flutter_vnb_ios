@@ -31,12 +31,33 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
   String? _selectedBranch;
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
+  List<dynamic> _employeeList = [];
+  String? _selectedEmployee;
+  bool _showEmployeeDropdown = false;
   @override
   void initState() {
     super.initState();
-    fetchBranches();
-    fetchCategories();
+    //Check info_app
+    //Nếu thông tin đăng nhập không hợp lệ show form đăng nhập
+
+    //Ngược lại lưu biến trả về vào pref để dùng cho sau này ở form khác
+    Start_App();
+
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> Start_App() async {
+    dynamic admin_id = await Preferences.getAdminId();
+    debugPrint("admin_id: " + admin_id.toString());
+    if (admin_id == null) {
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      //Có admin ID => Check info app
+
+      fetchBranches();
+      fetchCategories();
+      await fetchAppInfo();
+    }
   }
 
   @override
@@ -51,6 +72,41 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
         !_isLoading &&
         !dung_tim_kiem) {
       _searchProducts(trang_tim_kiem);
+    }
+  }
+
+  Future<void> fetchAppInfo() async {
+    try {
+      dynamic keyChiNhanh = await Preferences.getKeyChiNhanh();
+      dynamic userKeyApp = await Preferences.getUserKeyApp();
+
+      final response = await ApiService.callApi('get_info_app', {
+        'key_chi_nhanh': keyChiNhanh,
+        'user_key_app': userKeyApp,
+      });
+      debugPrint("responseeeee $response");
+      // Parse response
+      if (response != null && response['loi'] == 0) {
+        // No error, process employee list if present
+        if (response['chon_nhan_vien'] == 1) {
+          setState(() {
+            _showEmployeeDropdown = true;
+            _employeeList = response['nv_list'] as List<dynamic>;
+          });
+        } else {
+          setState(() {
+            _showEmployeeDropdown = false;
+          });
+        }
+      } else {
+        // Handle login invalidation
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi lấy thông tin ứng dụng: $e')),
+      );
     }
   }
 

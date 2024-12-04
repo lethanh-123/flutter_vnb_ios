@@ -12,6 +12,12 @@ class Preferences {
     await prefs.setString('key_chi_nhanh', userInfo['key_chi_nhanh']);
   }
 
+  static Future<void> saveAppInfo(Map<String, dynamic> userInfo) async {
+    final prefs = await SharedPreferences.getInstance();
+
+   
+  }
+
   static Future<Map<String, dynamic>?> getUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     final userInfo = prefs.getString('user_info');
