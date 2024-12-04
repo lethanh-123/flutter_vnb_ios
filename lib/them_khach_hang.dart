@@ -35,7 +35,8 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
       try {
         final response =
             await ApiService.callApi('them_khach_hang', requestData);
-
+        debugPrint("requestDataaaaa $requestData");
+        debugPrint("responseaaaa $response");
         if (response != null && response['loi'] > 0) {
           // Thông báo lỗi từ API
           ScaffoldMessenger.of(context).showSnackBar(

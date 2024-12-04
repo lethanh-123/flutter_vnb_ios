@@ -5,6 +5,7 @@ import 'package:flutter_vnb_ios/api_service.dart';
 import 'preferences.dart';
 import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'dart:convert';
 
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> selectedProducts;
@@ -24,10 +25,13 @@ class _PaymentPageState extends State<PaymentPage> {
   String? selectedBank;
   num totalAmount = 0;
   num discountAmount = 0;
-
+  List<Map<String, dynamic>> gifts = [];
+  Map<String, String> productNotes =
+      {}; // Lưu trữ ghi chú của sản phẩm theo ma_vach
   @override
   void initState() {
     super.initState();
+    checkQuaTang();
     _calculateTotalAmount();
   }
 
@@ -51,7 +55,7 @@ class _PaymentPageState extends State<PaymentPage> {
       'total_amount': totalAmount,
     });
 
-    if (response != null && response['status'] == 'success') {
+    if (response != null) {
       setState(() {
         discountAmount =
             response['discount_amount'] ?? 0; // Default to 0 if null
@@ -69,31 +73,122 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
+  Future<void> checkQuaTang() async {
+    try {
+      String? keyChiNhanh = await Preferences.getKeyChiNhanh();
+
+      for (var product in widget.selectedProducts) {
+        String productId = product['ma_vach']; // Lấy mã vạch của sản phẩm
+        int quantity = product['so_luong']; // Lấy số lượng của sản phẩm
+
+        final response = await ApiService.callApi('check_qua_tang', {
+          'key_chi_nhanh': keyChiNhanh,
+          'ma_vach': productId,
+          'so_luong': quantity,
+        });
+
+        if (response != null) {
+          int loi = response['loi'] ?? -1;
+          String txtLoi = response['txt_loi'] ?? '';
+          var data = response['data'];
+
+          if (loi == 0 && data is List && data.isNotEmpty) {
+            for (var item in data) {
+              var quaTangList = item['qua_tang_list'];
+              if (quaTangList != null && quaTangList is Map) {
+                String ghiChu = quaTangList['ghi_chu'] ?? '';
+                productNotes[productId] = ghiChu; // Lưu ghi chú theo mã vạch
+              }
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    txtLoi.isNotEmpty ? txtLoi : 'Không có quà tặng phù hợp.'),
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Không thể kết nối tới server.')),
+          );
+        }
+      }
+      setState(() {}); // Cập nhật UI sau khi xử lý xong
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã xảy ra lỗi: $e')),
+      );
+    }
+  }
+
   Future<void> _completePayment() async {
+    // Lấy thông tin từ Preferences
     String? keyChiNhanh = await Preferences.getKeyChiNhanh();
     String? userKeyApp = await Preferences.get_user_info("user_key_app");
+    String? strKhachInfo = await Preferences.getKhach();
+    String? strUserInfo = await Preferences.getUser();
 
-    final response = await ApiService.callApi('xuat_hang', {
-      'key_chi_nhanh': keyChiNhanh,
-      'user_key_app': userKeyApp,
-      'products': widget.selectedProducts,
-      'cash_amount': cashController.text,
-      'transfer_amount': transferController.text,
-      'selected_bank': selectedBank,
-      'note': noteController.text,
-      'total_amount': totalAmount,
-    });
-
-    if (response != null && response['status'] == 'success') {
+    if (keyChiNhanh == null ||
+        userKeyApp == null ||
+        strKhachInfo == null ||
+        strUserInfo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thanh toán thành công!')),
+        const SnackBar(content: Text('Không đủ thông tin để thanh toán')),
       );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      return;
+    }
+
+    try {
+      // Parse dữ liệu khách hàng và người dùng
+      Map<String, dynamic> khachInfo = jsonDecode(strKhachInfo);
+      Map<String, dynamic> userInfo = jsonDecode(strUserInfo);
+
+      // Lấy các giá trị từ thông tin khách hàng và người dùng
+      int khachId = khachInfo['id'];
+      String keyChiNhanh = userInfo['key_chi_nhanh'];
+      String userKeyApp = userInfo['user_key_app'];
+
+      // Chuẩn bị dữ liệu sản phẩm
+      List<Map<String, dynamic>> productsJsonArray = widget.selectedProducts;
+      // Tạo requestData
+      final requestData = {
+        "khach_id": khachId,
+        "MaGiamGia":
+            discountCodeController.text.trim(), // Mã giảm giá từ TextField
+        "chi_tiet": productsJsonArray, // Danh sách sản phẩm
+        "user_key_app": userKeyApp,
+        "chuyen_khoan":
+            transferController.text.trim(), // Tiền chuyển khoản từ TextField
+        "ngan_hang": selectedBank, // Ngân hàng được chọn từ Dropdown
+        "tien_mat": cashController.text.trim(),
+        // "nhan_vien_id": nhanVienId,
+        "ghi_chu": noteController.text.trim(),
+        "key_chi_nhanh": keyChiNhanh, // Key chi nhánh
+      };
+
+      // Gửi request API
+      final response = await ApiService.callApi('xuat_hang', requestData);
+
+      if (response != null && response['status'] == 'success') {
+        // Thanh toán thành công
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thanh toán thành công!')),
+        );
+        Navigator.pop(context);
+      } else {
+        // Hiển thị lỗi nếu thất bại
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-                'Lỗi thanh toán: ${response?['message'] ?? 'Không xác định'}')),
+                'Lỗi thanh toán: ${response?['message'] ?? 'Không xác định'}'),
+          ),
+        );
+      }
+    } catch (e) {
+      // Xử lý lỗi ngoại lệ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Có lỗi xảy ra: $e')),
       );
     }
   }
@@ -284,120 +379,87 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Widget _buildProductList() {
     return Column(
-      children: widget.selectedProducts
-          .map(
-            (product) => Card(
-              margin: EdgeInsets.all(8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Product Name
-                    Text(
-                      product['ten_sp'] ?? '',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Mã sản phẩm: ${product['code'] ?? ''}',
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 8),
+      children: widget.selectedProducts.map(
+        (product) {
+          String productId = product['ma_vach']; // Lấy mã vạch của sản phẩm
+          String ghiChu = productNotes[productId] ?? ''; // Lấy ghi chú từ Map
 
-                    // Quantity and Price Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Decrease Button
-                        IconButton(
-                          icon: Icon(Icons.remove),
-                          onPressed: () {
-                            setState(() {
-                              if (product['so_luong'] > 1) {
-                                product['so_luong']--;
-                                _calculateTotalAmount(); // Update total after quantity change
-                              }
-                            });
-                          },
+          return Card(
+            margin: EdgeInsets.all(8.0),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tên sản phẩm
+                  Text(
+                    product['ten_sp'] ?? '',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${product['ma_vach'] ?? ''}',
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Số lượng và giá
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.remove),
+                        onPressed: () {
+                          setState(() {
+                            if (product['so_luong'] > 1) {
+                              product['so_luong']--;
+                              _calculateTotalAmount();
+                            }
+                          });
+                        },
+                      ),
+                      Text(
+                        '${product['so_luong']}',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.add),
+                        onPressed: () {
+                          setState(() {
+                            product['so_luong']++;
+                            _calculateTotalAmount();
+                          });
+                        },
+                      ),
+                      Text(
+                        _formatCurrency(
+                          product['so_luong'] * product['don_gia'],
                         ),
-                        // Quantity Text
-                        Text(
-                          '${product['so_luong']}',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        // Increase Button
-                        IconButton(
-                          icon: Icon(Icons.add),
-                          onPressed: () {
-                            setState(() {
-                              product['so_luong']++;
-                              _calculateTotalAmount(); // Update total after quantity change
-                            });
-                          },
-                        ),
-                        // Price Text
-                        Text(
-                          _formatCurrency(
-                            product['so_luong'] * product['don_gia'],
-                          ),
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+
+                  // Hiển thị ghi chú
+                  if (ghiChu.isNotEmpty) ...[
+                    Text(
+                      'Ghi chú: $ghiChu',
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                          fontStyle: FontStyle.italic),
                     ),
                     SizedBox(height: 8),
-
-                    // Invoice Note Input
-                    TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          product['note'] = value;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        hintText: 'Ghi chú cho sản phẩm',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                    SizedBox(height: 8),
-
-                    // Change Gift Button (Hidden by default)
-                    Visibility(
-                      visible:
-                          false, // Can be set to true based on your condition
-                      child: ElevatedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.card_giftcard),
-                        label: const Text('Đổi quà tặng'),
-                        style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all(Colors.green),
-                        ),
-                      ),
-                    ),
-
-                    // Gift Information (Hidden by default)
-                    const Visibility(
-                      visible:
-                          false, // Can be set to true based on your condition
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Quà tặng',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                      ),
-                    ),
                   ],
-                ),
+                ],
               ),
             ),
-          )
-          .toList(),
+          );
+        },
+      ).toList(),
     );
   }
 
