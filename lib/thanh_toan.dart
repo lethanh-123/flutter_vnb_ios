@@ -28,10 +28,15 @@ class _PaymentPageState extends State<PaymentPage> {
   List<Map<String, dynamic>> gifts = [];
   Map<String, String> productNotes =
       {}; // Lưu trữ ghi chú của sản phẩm theo ma_vach
+  bool _isEmployeeSelected = false;
+  List<dynamic> _employeeList = [];
+  bool _showEmployeeDropdown = false;
+  List<dynamic> _bankList = [];
   @override
   void initState() {
     super.initState();
-   // checkQuaTang();
+    // checkQuaTang();
+    fetchAppInfo();
     _calculateTotalAmount();
   }
 
@@ -41,6 +46,37 @@ class _PaymentPageState extends State<PaymentPage> {
         return sum + (product['so_luong'] * product['don_gia']);
       });
     });
+  }
+
+  Future<void> fetchAppInfo() async {
+    try {
+      dynamic keyChiNhanh = await Preferences.getKeyChiNhanh();
+      dynamic userKeyApp = await Preferences.getUserKeyApp();
+
+      final response = await ApiService.callApi('get_info_app', {
+        'key_chi_nhanh': keyChiNhanh,
+        'user_key_app': userKeyApp,
+      });
+
+      if (response != null && response['loi'] == 0) {
+        setState(() {
+          // Lưu danh sách ngân hàng từ response
+          _bankList = response['ngan_hang_list'] ?? [];
+          if (response['chon_nhan_vien'] == 1) {
+            _showEmployeeDropdown = true;
+            _employeeList = response['nv_list'] as List<dynamic>;
+          } else {
+            _showEmployeeDropdown = false;
+          }
+        });
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi lấy thông tin ứng dụng: $e')),
+      );
+    }
   }
 
   Future<void> _applyDiscount() async {
@@ -95,16 +131,13 @@ class _PaymentPageState extends State<PaymentPage> {
 
           if (loi == 0 && data is List && data.isNotEmpty) {
             for (var item in data) {
-              
               var quaTangList = item['qua_tang_list'];
               if (quaTangList != null && quaTangList is Map) {
                 String ghiChu = quaTangList['ghi_chu'] ?? '';
                 productNotes[productId] = ghiChu; // Lưu ghi chú theo mã vạch
               }
             }
-          } else {
-           
-          }
+          } else {}
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Không thể kết nối tới server.')),
@@ -192,7 +225,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, String>> bankList = _getBankList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hóa Đơn'),
@@ -272,13 +304,13 @@ class _PaymentPageState extends State<PaymentPage> {
                 value: selectedBank,
                 items: [
                   const DropdownMenuItem<String>(
-                    value: null, // null represents "Chọn ngân hàng"
+                    value: null, // null đại diện cho "Chọn ngân hàng"
                     child: Text('Chọn ngân hàng'),
                   ),
-                  ...bankList.map((bank) {
+                  ..._bankList.map((bank) {
                     return DropdownMenuItem<String>(
-                      value: bank['id'],
-                      child: Text(bank['name'] ?? ''),
+                      value: bank['id'].toString(), // Đảm bảo giá trị là String
+                      child: Text(bank['ten'] ?? ''), // Hiển thị tên ngân hàng
                     );
                   }).toList(),
                 ],
@@ -343,18 +375,6 @@ class _PaymentPageState extends State<PaymentPage> {
         ),
       ),
     );
-  }
-
-  List<Map<String, String>> _getBankList() {
-    // Sample static data to simulate fetching bank data from the API/Preferences
-    // Replace this with your actual API or preferences call
-    List<Map<String, String>> bankList = [
-      {"id": "bank1", "name": "Ngân hàng A"},
-      {"id": "bank2", "name": "Ngân hàng B"},
-      // Add more banks here from your JSONArray
-    ];
-
-    return bankList;
   }
 
   Widget _buildHeader(String title, Color color) {

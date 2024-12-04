@@ -56,7 +56,6 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
 
       fetchBranches();
       fetchCategories();
-      await fetchAppInfo();
     }
   }
 
@@ -75,40 +74,6 @@ class _TonKhoScreenState extends State<TonKhoScreen> {
     }
   }
 
-  Future<void> fetchAppInfo() async {
-    try {
-      dynamic keyChiNhanh = await Preferences.getKeyChiNhanh();
-      dynamic userKeyApp = await Preferences.getUserKeyApp();
-
-      final response = await ApiService.callApi('get_info_app', {
-        'key_chi_nhanh': keyChiNhanh,
-        'user_key_app': userKeyApp,
-      });
-      debugPrint("responseeeee $response");
-      // Parse response
-      if (response != null && response['loi'] == 0) {
-        // No error, process employee list if present
-        if (response['chon_nhan_vien'] == 1) {
-          setState(() {
-            _showEmployeeDropdown = true;
-            _employeeList = response['nv_list'] as List<dynamic>;
-          });
-        } else {
-          setState(() {
-            _showEmployeeDropdown = false;
-          });
-        }
-      } else {
-        // Handle login invalidation
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    } catch (e) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi lấy thông tin ứng dụng: $e')),
-      );
-    }
-  }
 
   Future<void> fetchBranches() async {
     dynamic key_chi_nhanh = await Preferences.getKeyChiNhanh();

@@ -30,7 +30,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
   bool _isLoading = false;
-  bool _isEmployeeSelected = false;
+ 
   @override
   void initState() {
     super.initState();
