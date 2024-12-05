@@ -19,7 +19,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, dynamic>> _products = [];
-  final List<int> _selectedProducts = [];
+  final List<Map<String, dynamic>> _selectedProducts = [];
+
   bool _isFetchingProducts = false;
   bool _isScanning = false;
   String _selectedCustomer = 'Chọn khách hàng';
@@ -30,13 +31,14 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
   bool _isLoading = false;
-
+  List<Map<String, dynamic>> gifts = [];
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _onSearch();
     });
+    //checkQuaTang();
     _scrollController.addListener(_onScroll);
   }
 
@@ -155,7 +157,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => _onSearch(page: trang_tim_kiem),
+            onPressed: () => _onSearch(page: 1),
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
@@ -170,48 +172,60 @@ class _BanHangScreenState extends State<BanHangScreen> {
     _startBarcodeScanning(true); // Quét mã QR trước
   }
 
-  // Future<void> checkQuaTang() async {
-  //   debugPrint("checkQuaTang 1");
-  //   try {
-  //     String? keyChiNhanh = await Preferences.getKeyChiNhanh();
+  Future<void> checkQuaTang(dynamic product) async {
+    if (product['so_luong'] > 0) {
+      String? keyChiNhanh = await Preferences.getKeyChiNhanh();
+      String productId = product['ma_vach'];
+      int quantity = product['so_luong'];
 
-  //     for (var product in widget.selectedProducts) {
-  //       String productId = product['ma_vach']; // Lấy mã vạch của sản phẩm
-  //       int quantity = product['so_luong']; // Lấy số lượng của sản phẩm
+      final response = await ApiService.callApi('check_qua_tang', {
+        'key_chi_nhanh': keyChiNhanh,
+        'ma_vach': productId,
+        'so_luong': quantity,
+      });
 
-  //       final response = await ApiService.callApi('check_qua_tang', {
-  //         'key_chi_nhanh': keyChiNhanh,
-  //         'ma_vach': productId,
-  //         'so_luong': quantity,
-  //       });
+      if (response != null && response['loi'] == 0) {
+        var data = response['data'];
+        if (data is List && data.isNotEmpty) {
+          var quaTangList = data[0]['qua_tang_list'];
+          if (quaTangList != null) {
+            var listTangKem = quaTangList['list_tang_kem'];
+            if (listTangKem != null &&
+                listTangKem is List &&
+                listTangKem.isNotEmpty) {
+              var quaTangItem = listTangKem[0];
 
-  //       if (response != null) {
-  //         int loi = response['loi'] ?? -1;
-  //         String txtLoi = response['txt_loi'] ?? '';
-  //         var data = response['data'];
+              dynamic quaTang = {
+                'qua_tang': product['ma_vach'],
+                'so_luong': quaTangList['so_luong'] ?? 1,
+                'ghi_chu': quaTangList['ghi_chu'] ?? '',
+                'don_gia': quaTangItem['gia'] ?? 0,
+                'qua_tang_list': quaTangList, // Thêm dữ liệu quà tặng
+              };
 
-  //         if (loi == 0 && data is List && data.isNotEmpty) {
-  //           for (var item in data) {
-  //             var quaTangList = item['qua_tang_list'];
-  //             if (quaTangList != null && quaTangList is Map) {
-  //               String ghiChu = quaTangList['ghi_chu'] ?? '';
-  //               productNotes[productId] = ghiChu; // Lưu ghi chú theo mã vạch
-  //             }
-  //           }
-  //         } else {}
-  //       } else {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(content: Text('Không thể kết nối tới server.')),
-  //         );
-  //       }
-  //     }
-  //     setState(() {}); // Cập nhật UI sau khi xử lý xong
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Đã xảy ra lỗi: $e')),
-  //     );
-  //   }
-  // }
+              debugPrint("qua_tang: $quaTang");
+              _selectedProducts.add(quaTang);
+            } else {
+              debugPrint("list_tang_kem rỗng hoặc không tồn tại.");
+            }
+          } else {
+            debugPrint("qua_tang_list không tồn tại hoặc null.");
+          }
+        } else {
+          debugPrint("Dữ liệu trả về từ API không hợp lệ hoặc rỗng.");
+        }
+      } else {
+        debugPrint("Phản hồi từ API không hợp lệ hoặc có lỗi.");
+      }
+
+      // Debug danh sách sản phẩm đã chọn
+      for (var sp in _selectedProducts) {
+        debugPrint("_selectedProducts: $sp");
+      }
+    }
+
+    setState(() {}); // Cập nhật giao diện
+  }
 
   Widget _buildEmployeeAndCustomerSection() {
     return Padding(
@@ -252,140 +266,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
     );
   }
 
-  String GiaLapMaCode(String ma_code) {
-    if (ma_code == "E283E0E02000F8800C733855") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E4AC2B5";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C773044") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008A49CA0B";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C733455") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008A49CA23";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C764048") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498998";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C764647") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E49897C";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C74424E") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498964";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C733E53") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498948";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C774444") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498900";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C772E44") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E4988B8";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C772C45") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E4988D0";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C773A44") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498864";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C733255") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E49884C";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C733654") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E4988A0";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C743C50") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498884";
-      return ma_code;
-    }
-    if (ma_code == "E200470D69C06821089C0114") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E498930";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C671618") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37B155E";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C774946") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37B5B1E";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C69140F") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37AAD2E";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C734757") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37AFBFE";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C6B1A09") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280F302000000008E4988E8";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C734A55") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37AFB0E";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C734355") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37AAD3E";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C774D47") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37A93CE";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C774B47") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37A93DE";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C774546") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37BCD3F";
-      return ma_code;
-    }
-    if (ma_code == "E283E0E02000F8800C734C55") {
-      debugPrint("Thay ma code $ma_code");
-      ma_code = "E280117000000215C37BB3DF";
-      return ma_code;
-    }
-    return ma_code;
-  }
-
   void _selectCustomer() async {
     final result = await Navigator.push(
       context,
@@ -423,19 +303,40 @@ class _BanHangScreenState extends State<BanHangScreen> {
                   );
           }
 
-          final product = _products[index];
-          final isSelected = _selectedProducts.contains(index);
+          var product = _products[index];
+          if (product['qua_tang'] == null) product['qua_tang'] = "";
+          var isSelected = false;
+          var index_select;
+          for (int i = 0; i < _selectedProducts.length; i++) {
+            var san_pham = _selectedProducts[i];
+            if (san_pham['qua_tang'] == null) san_pham['qua_tang'] = "";
+            if (san_pham['ma_vach'] == product['ma_vach'] &&
+                san_pham['qua_tang'] == product['qua_tang']) {
+              debugPrint("qua_tang: " + san_pham['qua_tang']);
+              debugPrint("qua_tang: " + product['qua_tang']);
+              isSelected = true;
+              index_select = i;
+
+              break;
+            }
+          }
 
           return GestureDetector(
             onTap: () {
               setState(() {
                 if (isSelected) {
-                  _selectedProducts.remove(index);
+                  _selectedProducts.removeAt(index_select);
+
                   product['so_luong'] = 0; // Đặt lại số lượng khi bỏ chọn
                 } else {
-                  _selectedProducts.add(index);
+                  // _selectedProducts.add(index);
+
                   product['so_luong'] = 0; // Khởi tạo số lượng là 0
+                  _selectedProducts.add(product);
                 }
+
+                debugPrint(
+                    "_selectedProducts: " + _selectedProducts.toString());
               });
             },
             child: Container(
@@ -508,9 +409,11 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                       setState(() {
                                         product['so_luong'] =
                                             (product['so_luong'] ?? 1) - 1;
-                                        if (product['so_luong'] < 1) {
-                                          product['so_luong'] = 1;
+                                        if (product['so_luong'] < 0) {
+                                          product['so_luong'] = 0;
                                         }
+                                        if (product['so_luong'] == 0) {}
+                                        //checkQuaTang(); // Re-check gifts after removing
                                       });
                                     },
                                   ),
@@ -524,7 +427,19 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                     onPressed: () {
                                       setState(() {
                                         product['so_luong'] =
-                                            (product['so_luong'] ?? 1) + 1;
+                                            (product['so_luong'] ?? 0) + 1;
+                                        for (var sp in _selectedProducts) {
+                                          if (sp['ma_vach'] ==
+                                                  product['ma_vach'] &&
+                                              sp['qua_tang'] ==
+                                                  product['qua_tang']) {
+                                            sp['so_luong'] = product[
+                                                'so_luong']; // Set the quantity to 0
+                                            checkQuaTang(
+                                                sp); // Re-check gifts after adding
+                                            break; // Exit the loop once the gift is updated
+                                          }
+                                        }
                                       });
                                     },
                                   ),
@@ -585,10 +500,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => PaymentPage(
-                  selectedProducts: _products
-                      .where((product) => (product['so_luong'] ?? 0) > 0)
-                      .toList(),
-                ),
+                    selectedProducts: _selectedProducts
+                        .where((_selectedProducts) =>
+                            (_selectedProducts['so_luong'] ?? 0) > 0)
+                        .toList()),
               ),
             );
           }
