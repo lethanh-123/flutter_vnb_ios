@@ -30,7 +30,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
   bool _isLoading = false;
- 
+
   @override
   void initState() {
     super.initState();
@@ -169,6 +169,49 @@ class _BanHangScreenState extends State<BanHangScreen> {
   void _handleEmployeeSelection() {
     _startBarcodeScanning(true); // Quét mã QR trước
   }
+
+  // Future<void> checkQuaTang() async {
+  //   debugPrint("checkQuaTang 1");
+  //   try {
+  //     String? keyChiNhanh = await Preferences.getKeyChiNhanh();
+
+  //     for (var product in widget.selectedProducts) {
+  //       String productId = product['ma_vach']; // Lấy mã vạch của sản phẩm
+  //       int quantity = product['so_luong']; // Lấy số lượng của sản phẩm
+
+  //       final response = await ApiService.callApi('check_qua_tang', {
+  //         'key_chi_nhanh': keyChiNhanh,
+  //         'ma_vach': productId,
+  //         'so_luong': quantity,
+  //       });
+
+  //       if (response != null) {
+  //         int loi = response['loi'] ?? -1;
+  //         String txtLoi = response['txt_loi'] ?? '';
+  //         var data = response['data'];
+
+  //         if (loi == 0 && data is List && data.isNotEmpty) {
+  //           for (var item in data) {
+  //             var quaTangList = item['qua_tang_list'];
+  //             if (quaTangList != null && quaTangList is Map) {
+  //               String ghiChu = quaTangList['ghi_chu'] ?? '';
+  //               productNotes[productId] = ghiChu; // Lưu ghi chú theo mã vạch
+  //             }
+  //           }
+  //         } else {}
+  //       } else {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text('Không thể kết nối tới server.')),
+  //         );
+  //       }
+  //     }
+  //     setState(() {}); // Cập nhật UI sau khi xử lý xong
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Đã xảy ra lỗi: $e')),
+  //     );
+  //   }
+  // }
 
   Widget _buildEmployeeAndCustomerSection() {
     return Padding(

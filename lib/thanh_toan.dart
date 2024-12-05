@@ -35,8 +35,8 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   void initState() {
     super.initState();
-    // checkQuaTang();
-    fetchAppInfo();
+    checkQuaTang();
+
     _calculateTotalAmount();
   }
 
@@ -117,13 +117,15 @@ class _PaymentPageState extends State<PaymentPage> {
       for (var product in widget.selectedProducts) {
         String productId = product['ma_vach']; // Lấy mã vạch của sản phẩm
         int quantity = product['so_luong']; // Lấy số lượng của sản phẩm
-
-        final response = await ApiService.callApi('check_qua_tang', {
-          'key_chi_nhanh': keyChiNhanh,
+        final Map<String, dynamic> requestData = {
           'ma_vach': productId,
           'so_luong': quantity,
-        });
-
+          'key_chi_nhanh': keyChiNhanh ?? '',
+        };
+        final response =
+            await ApiService.callApi('check_qua_tang', requestData);
+        debugPrint("requestdata2 $requestData");
+        debugPrint("response2 $response");
         if (response != null) {
           int loi = response['loi'] ?? -1;
           String txtLoi = response['txt_loi'] ?? '';
