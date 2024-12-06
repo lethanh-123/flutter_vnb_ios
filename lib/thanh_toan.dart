@@ -384,13 +384,15 @@ class _PaymentPageState extends State<PaymentPage> {
   Widget _buildProductList() {
     return Column(
       children: widget.selectedProducts.map((product) {
-        String productId = product['ma_vach'] ?? ''; // Lấy mã vạch sản phẩm
+        String productId =
+            product['qua_tang'] != null && product['qua_tang_list'] != null
+                ? product['qua_tang_list']['ma_vach'] ?? ''
+                : product['ma_vach'] ?? '';
         String ghiChu = product['ghi_chu'] ?? ''; // Ghi chú
         bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
-
+        debugPrint("productfasf $product");
         // Truy xuất dữ liệu giftData
         final giftData = product['qua_tang_list'];
-        debugPrint("giftData $ghiChu");
         return Card(
           margin: const EdgeInsets.all(8.0),
           child: Padding(

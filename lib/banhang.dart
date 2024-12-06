@@ -177,13 +177,13 @@ class _BanHangScreenState extends State<BanHangScreen> {
       String? keyChiNhanh = await Preferences.getKeyChiNhanh();
       String productId = product['ma_vach'];
       int quantity = product['so_luong'];
-
-      final response = await ApiService.callApi('check_qua_tang', {
+      final requestData = {
         'key_chi_nhanh': keyChiNhanh,
         'ma_vach': productId,
         'so_luong': quantity,
-      });
-
+      };
+      final response = await ApiService.callApi('check_qua_tang', requestData);
+      debugPrint("requestDatafasdf $requestData");
       if (response != null && response['loi'] == 0) {
         var data = response['data'];
         if (data is List && data.isNotEmpty) {
@@ -200,6 +200,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
                 'so_luong': quaTangList['so_luong'] ?? 1,
                 'ghi_chu': quaTangList['ghi_chu'] ?? '',
                 'don_gia': quaTangItem['gia'] ?? 0,
+                'ten_sp': quaTangList['ten_sp'] ?? 'Tên quà tặng',
                 'qua_tang_list': quaTangList, // Thêm dữ liệu quà tặng
               };
 
