@@ -154,6 +154,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                             Navigator.pop(context, {
                               'ten': customer['ten'],
                               'so_dt': customer['so_dt'],
+                              'id': customer['id']
                             });
                           },
                         );

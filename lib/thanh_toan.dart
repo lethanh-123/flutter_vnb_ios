@@ -6,11 +6,16 @@ import 'preferences.dart';
 import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'dart:convert';
+import 'functions.dart';
 
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> selectedProducts;
-  const PaymentPage({Key? key, required this.selectedProducts})
-      : super(key: key);
+  final String? customerId; // Thêm khach_id
+  const PaymentPage({
+    Key? key,
+    required this.selectedProducts,
+    this.customerId, // Nhận khach_id từ constructor
+  }) : super(key: key);
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();
@@ -72,8 +77,17 @@ class _PaymentPageState extends State<PaymentPage> {
 
   void _calculateTotalAmount() {
     setState(() {
-      totalAmount = widget.selectedProducts.fold(0, (sum, product) {
-        return sum + (product['so_luong'] * product['don_gia']);
+      totalAmount = widget.selectedProducts.fold(0.0, (sum, product) {
+        double productTotal = (product['so_luong'] as num).toDouble() *
+            (product['don_gia'] as num).toDouble();
+
+        // Trừ tiền giảm giá nếu có
+        if (product.containsKey('discountAmount')) {
+          productTotal -= (product['discountAmount'] as num)
+              .toDouble(); // Ensure discount is double
+        }
+
+        return sum + productTotal;
       });
     });
   }
@@ -114,19 +128,53 @@ class _PaymentPageState extends State<PaymentPage> {
     String? userKeyApp = await Preferences.get_user_info("user_key_app");
     String discountCode = discountCodeController.text;
 
-    final response = await ApiService.callApi('ap_dung_ma_giam_gia', {
+    // Chuyển đổi danh sách sản phẩm đã chọn thành JSON array
+    List<Map<String, dynamic>> selectedProducts = widget.selectedProducts;
+    List<Map<String, dynamic>> productsJsonArray =
+        selectedProducts.map((product) {
+      return {
+        'ma_vach': product['ma_vach'],
+        'gia': product['gia'],
+        'so_luong': product['so_luong'],
+        'qua_tang': product['qua_tang'] ?? '',
+        'tien_giam_gia': product['tien_giam_gia'] ?? 0,
+      };
+    }).toList();
+
+    final request = {
       'key_chi_nhanh': keyChiNhanh,
       'user_key_app': userKeyApp,
-      'discount_code': discountCode,
-      'total_amount': totalAmount,
-    });
+      'ma_giam_gia': discountCode,
+      'khach_id': widget.customerId,
+      'chi_tiet': productsJsonArray, // Thêm chi_tiet vào request
+    };
 
+    final response = await ApiService.callApi('ap_dung_ma_giam_gia', request);
+
+    debugPrint("responsefasf " + response.toString());
     if (response != null) {
       setState(() {
-        discountAmount =
-            response['discount_amount'] ?? 0; // Default to 0 if null
+        discountAmount = response['giam_gia_list'][0]['tien_giam_gia'] ??
+            0; // Default to 0 if null
         totalAmount -= discountAmount;
+
+        // Cập nhật ghi chú giảm giá cho sản phẩm mà không thay đổi ghi chú cũ
+        for (var product in widget.selectedProducts) {
+          String maGiamGia = response['giam_gia_list'][0]['ma_vach'] ?? '';
+          String tienGiamGia =
+              response['giam_gia_list'][0]['tien_giam_gia_format'] ?? '';
+          String mucGiamGia =
+              response['giam_gia_list'][0]['muc_giam_gia'].toString() ?? '';
+
+          // Thêm trường ghi chú giảm giá mới vào sản phẩm
+          product['discountNote'] =
+              '${maGiamGia} - Giảm ${tienGiamGia} (${mucGiamGia}%)';
+        }
+
+        // Tính lại tổng tiền sau khi giảm giá
+        _calculateTotalAmount();
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content:
@@ -330,7 +378,7 @@ class _PaymentPageState extends State<PaymentPage> {
               // Total Amount
               const SizedBox(height: 16),
               Text(
-                'Tổng tiền: ${totalAmount - discountAmount} VNĐ',
+                'Tổng tiền: ${formatCurrency(totalAmount - discountAmount)}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -388,11 +436,19 @@ class _PaymentPageState extends State<PaymentPage> {
             product['qua_tang'] != null && product['qua_tang_list'] != null
                 ? product['qua_tang_list']['ma_vach'] ?? ''
                 : product['ma_vach'] ?? '';
-        String ghiChu = product['ghi_chu'] ?? ''; // Ghi chú
+        String ghiChu = product['ghi_chu'] ?? ''; // Ghi chú hiện tại
+        String discountNote = product['discountNote'] ?? ''; // Ghi chú giảm giá
         bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
-        debugPrint("productfasf $product");
+
         // Truy xuất dữ liệu giftData
         final giftData = product['qua_tang_list'];
+        final listTangKem =
+            giftData != null && giftData['list_tang_kem'] != null
+                ? giftData['list_tang_kem'] as List
+                : [];
+        // Lấy giá trị data_length
+        int dataLength = product['data_length'] ?? 0;
+
         return Card(
           margin: const EdgeInsets.all(8.0),
           child: Padding(
@@ -448,14 +504,14 @@ class _PaymentPageState extends State<PaymentPage> {
                             },
                     ),
                     Text(
-                      _formatCurrency(product['so_luong'] * product['don_gia']),
+                      formatCurrency(product['so_luong'] * product['don_gia']),
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Hiển thị ghi chú (nếu có)
+                // Hiển thị ghi chú hiện tại (nếu có)
                 if (ghiChu.isNotEmpty)
                   Text(
                     'Ghi chú: $ghiChu',
@@ -466,29 +522,37 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                   ),
                 const SizedBox(height: 8),
-                // Hiển thị quà tặng
+                // Hiển thị ghi chú giảm giá (nếu có)
+                if (discountNote.isNotEmpty)
+                  Text(
+                    'Giảm giá: $discountNote',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.green,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                // Hiển thị nút Quà tặng
                 if (giftData != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Quà tặng:',
-                        style: TextStyle(color: Colors.green, fontSize: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          dataLength > 1 ? Colors.green : Colors.deepOrange,
+                    ),
+                    onPressed: () async {
+                      await _showGiftSelectionDialog(
+                        product,
+                        listTangKem,
+                        dataLength > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                      );
+                    },
+                    child: Text(
+                      dataLength > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                      style: const TextStyle(
+                        color: Colors.white,
                       ),
-                      ...List.generate(
-                        giftData['list_tang_kem'].length,
-                        (index) {
-                          final gift = giftData['list_tang_kem'][index];
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              '- ${gift['ten_sp']} (SL: ${gift['ton_kho']})',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                    ),
                   ),
                 const SizedBox(height: 8),
               ],
@@ -499,7 +563,109 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  String _formatCurrency(num value) {
-    return '${value.toStringAsFixed(0)} VNĐ';
+  Future<void> _showGiftSelectionDialog(
+      dynamic product, List<dynamic> giftList, String title) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: giftList.length,
+              itemBuilder: (context, index) {
+                final gift = giftList[index];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      // Cập nhật thông tin sản phẩm với quà tặng đã chọn
+                      product['ten_sp'] = gift['ten_sp'];
+                      product['ma_vach'] = gift['ma_vach'];
+                      product['don_gia'] = gift['gia'];
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white, // Nền trắng
+                      border: Border.all(
+                        color: Colors.grey.shade300, // Màu viền
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8), // Bo góc
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2), // Đổ bóng
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Hình ảnh quà tặng nếu có
+                        gift['image_url'] != null
+                            ? Container(
+                                width: 50,
+                                height: 50,
+                                margin: const EdgeInsets.only(right: 12),
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(gift['image_url']),
+                                    fit: BoxFit.cover,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                gift['ten_sp'] ?? 'Tên quà tặng',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                gift['ma_vach'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          formatCurrency(gift['gia']),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đóng'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

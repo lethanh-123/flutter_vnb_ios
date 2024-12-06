@@ -24,6 +24,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   bool _isFetchingProducts = false;
   bool _isScanning = false;
   String _selectedCustomer = 'Chọn khách hàng';
+  String? _selectedCustomerId;
   String _selectedEmployee = 'Chọn nhân viên bán hàng';
   String _scanStatus = 'Scan status';
   final int _currentPage = 1;
@@ -172,6 +173,19 @@ class _BanHangScreenState extends State<BanHangScreen> {
     _startBarcodeScanning(true); // Quét mã QR trước
   }
 
+  void _navigateToPaymentPage() {
+    debugPrint("_selectedCustomerId $_selectedCustomerId");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(
+          selectedProducts: _selectedProducts,
+          customerId: _selectedCustomerId, // Truyền khach_id
+        ),
+      ),
+    );
+  }
+
   Future<void> checkQuaTang(dynamic product) async {
     if (product['so_luong'] > 0) {
       String? keyChiNhanh = await Preferences.getKeyChiNhanh();
@@ -183,35 +197,22 @@ class _BanHangScreenState extends State<BanHangScreen> {
         'so_luong': quantity,
       };
       final response = await ApiService.callApi('check_qua_tang', requestData);
-      debugPrint("requestDatafasdf $requestData");
+      debugPrint("Request data: $requestData");
       if (response != null && response['loi'] == 0) {
         var data = response['data'];
         if (data is List && data.isNotEmpty) {
-          var quaTangList = data[0]['qua_tang_list'];
-          if (quaTangList != null) {
-            var listTangKem = quaTangList['list_tang_kem'];
-            if (listTangKem != null &&
-                listTangKem is List &&
-                listTangKem.isNotEmpty) {
-              var quaTangItem = listTangKem[0];
-
-              dynamic quaTang = {
-                'qua_tang': product['ma_vach'],
-                'so_luong': quaTangList['so_luong'] ?? 1,
-                'ghi_chu': quaTangList['ghi_chu'] ?? '',
-                'don_gia': quaTangItem['gia'] ?? 0,
-                'ten_sp': quaTangList['ten_sp'] ?? 'Tên quà tặng',
-                'qua_tang_list': quaTangList, // Thêm dữ liệu quà tặng
-              };
-
-              debugPrint("qua_tang: $quaTang");
-              _selectedProducts.add(quaTang);
-            } else {
-              debugPrint("list_tang_kem rỗng hoặc không tồn tại.");
-            }
-          } else {
-            debugPrint("qua_tang_list không tồn tại hoặc null.");
-          }
+          // Xử lý từng phần tử của `data`
+          var quaTangData = data[0];
+          dynamic quaTang = {
+            'qua_tang': product['ma_vach'],
+            'so_luong': quaTangData['so_luong'] ?? 1,
+            'ghi_chu': quaTangData['ghi_chu'] ?? '',
+            'don_gia': 0,
+            'ten_sp': quaTangData['ten'] ?? 'Tên quà tặng',
+            'qua_tang_list': quaTangData['qua_tang_list'],
+            'data_length': data.length // Dữ liệu cho xử lý sau này
+          };
+          _selectedProducts.add(quaTang);
         } else {
           debugPrint("Dữ liệu trả về từ API không hợp lệ hoặc rỗng.");
         }
@@ -219,13 +220,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
         debugPrint("Phản hồi từ API không hợp lệ hoặc có lỗi.");
       }
 
-      // Debug danh sách sản phẩm đã chọn
-      for (var sp in _selectedProducts) {
-        debugPrint("_selectedProducts: $sp");
-      }
+      setState(() {}); // Cập nhật giao diện
     }
-
-    setState(() {}); // Cập nhật giao diện
   }
 
   Widget _buildEmployeeAndCustomerSection() {
@@ -272,11 +268,12 @@ class _BanHangScreenState extends State<BanHangScreen> {
       context,
       MaterialPageRoute(builder: (context) => CustomerListScreen()),
     );
-
+    debugPrint("fsdfsafasf" + result['id']);
     if (result != null) {
       setState(() {
         _selectedCustomer =
             "Khách hàng: ${result['ten']} - ${result['so_dt']}"; // Gộp tên và số điện thoại
+        _selectedCustomerId = result['id'];
       });
     }
   }
@@ -335,9 +332,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
                   product['so_luong'] = 0; // Khởi tạo số lượng là 0
                   _selectedProducts.add(product);
                 }
-
-                debugPrint(
-                    "_selectedProducts: " + _selectedProducts.toString());
               });
             },
             child: Container(
@@ -507,6 +501,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
                         .toList()),
               ),
             );
+            _navigateToPaymentPage();
           }
         },
         child: const Text(
