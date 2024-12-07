@@ -202,19 +202,33 @@ class _BanHangScreenState extends State<BanHangScreen> {
         var data = response['data'];
         if (data is List && data.isNotEmpty) {
           // Xử lý từng phần tử của `data`
-          var quaTangData = data[0];
-          dynamic quaTang = {
-            'qua_tang': product['ma_vach'],
-            'so_luong': quaTangData['so_luong'] ?? 1,
-            'ghi_chu': quaTangData['ghi_chu'] ?? '',
-            'don_gia': 0,
-            'ten_sp': quaTangData['ten'] ?? 'Tên quà tặng',
-            'qua_tang_list': quaTangData['qua_tang_list'],
-            'data_length': data.length // Dữ liệu cho xử lý sau này
-          };
+          dynamic quaTang = data[0]['qua_tang_list'];
+
+          quaTang['don_gia'] = quaTang['gia'] ?? 0;
+          quaTang['qua_tang'] = product['ma_vach'];
+          quaTang['doi_qua_tang'] = quaTang['doi_qua_tang'] ?? 0;
+          debugPrint("qua_tang_info: " + quaTang.toString());
           _selectedProducts.add(quaTang);
-        } else {
-          debugPrint("Dữ liệu trả về từ API không hợp lệ hoặc rỗng.");
+          //Nếu data.length>1 thì sẽ edit chon_qua_tang hiện tại của product chính =1
+          if (data.length > 1) {
+            for (var product_chinh in _selectedProducts) {
+              if (product_chinh['ma_vach'] == product['ma_vach'] &&
+                  product_chinh['qua_tang'] != null &&
+                  product_chinh['qua_tang'].isNotEmpty) {
+                  product_chinh['chon_qua_tang'] = 1; // Cập nhật giá trị
+                break; // Thoát vòng lặp nếu tìm thấy
+              }
+            }
+          }
+        }
+        var data_tang_kem = response['data_tang_kem'];
+        if (data_tang_kem != null && data_tang_kem.isNotEmpty) {
+          // Xử lý từng phần tử của `data`
+          dynamic quaTang_kem = data_tang_kem;
+          quaTang_kem['don_gia'] = quaTang_kem['gia'] ?? 0;
+          quaTang_kem['qua_tang'] = product['ma_vach'];
+          quaTang_kem['doi_qua_tang'] = quaTang_kem['doi_qua_tang'] ?? 0;
+          _selectedProducts.add(quaTang_kem);
         }
       } else {
         debugPrint("Phản hồi từ API không hợp lệ hoặc có lỗi.");

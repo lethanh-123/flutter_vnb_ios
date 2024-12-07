@@ -441,13 +441,12 @@ class _PaymentPageState extends State<PaymentPage> {
         bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
 
         // Truy xuất dữ liệu giftData
-        final giftData = product['qua_tang_list'];
-        final listTangKem =
-            giftData != null && giftData['list_tang_kem'] != null
-                ? giftData['list_tang_kem'] as List
-                : [];
+
+        final listTangKem = product['list_tang_kem'] != null
+            ? product['list_tang_kem'] as List
+            : [];
         // Lấy giá trị data_length
-        int dataLength = product['data_length'] ?? 0;
+        int doi_qua_tang = product['doi_qua_tang'] ?? 0;
 
         return Card(
           margin: const EdgeInsets.all(8.0),
@@ -534,21 +533,21 @@ class _PaymentPageState extends State<PaymentPage> {
                   ),
                 const SizedBox(height: 8),
                 // Hiển thị nút Quà tặng
-                if (giftData != null)
+                if (doi_qua_tang > 0)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                          dataLength > 1 ? Colors.green : Colors.deepOrange,
+                          doi_qua_tang > 1 ? Colors.green : Colors.deepOrange,
                     ),
                     onPressed: () async {
                       await _showGiftSelectionDialog(
                         product,
                         listTangKem,
-                        dataLength > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                        doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
                       );
                     },
                     child: Text(
-                      dataLength > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                      doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
                       style: const TextStyle(
                         color: Colors.white,
                       ),
