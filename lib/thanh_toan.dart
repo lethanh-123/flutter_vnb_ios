@@ -482,6 +482,10 @@ class _PaymentPageState extends State<PaymentPage> {
                                 if (product['so_luong'] > 1) {
                                   product['so_luong']--;
                                   _calculateTotalAmount();
+                                } else if (product['so_luong'] == 1) {
+                                  // Nếu số lượng sản phẩm chính về 0, xóa quà tặng
+                                  showConfirmDialog(
+                                      context, product['ma_vach']);
                                 }
                               });
                             },
@@ -560,6 +564,60 @@ class _PaymentPageState extends State<PaymentPage> {
         );
       }).toList(),
     );
+  }
+
+  void removeGiftProducts(String mainProductCode) {
+    setState(() {
+      widget.selectedProducts.removeWhere((product) {
+        // Kiểm tra nếu `qua_tang` là mã của sản phẩm chính
+        return product['qua_tang'] != null &&
+            product['qua_tang'] == mainProductCode;
+      });
+    });
+  }
+
+  Future<void> showConfirmDialog(
+      BuildContext context, String productCode) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Xác nhận"),
+          content: const Text("Bạn có chắc chắn muốn xóa sản phẩm này không?"),
+          actions: [
+            TextButton(
+              child: const Text("Không"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Đóng dialog
+              },
+            ),
+            TextButton(
+              child: const Text("Có"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Đóng dialog
+                removeProductAndNavigateBack(context, productCode);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void removeProductAndNavigateBack(BuildContext context, String productCode) {
+    setState(() {
+      // Xóa quà tặng liên quan
+      removeGiftProducts(productCode);
+      // Xóa sản phẩm chính
+      widget.selectedProducts
+          .removeWhere((product) => product['ma_vach'] == productCode);
+      _calculateTotalAmount();
+
+      // Nếu không còn sản phẩm nào, quay lại trang trước
+      if (widget.selectedProducts.isEmpty) {
+        Navigator.pop(context); // Quay về trang banhang.dart
+      }
+    });
   }
 
   Future<void> _showGiftSelectionDialog(

@@ -179,7 +179,9 @@ class _BanHangScreenState extends State<BanHangScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => PaymentPage(
-          selectedProducts: _selectedProducts,
+          selectedProducts: _selectedProducts
+              .where((product) => (product['so_luong'] ?? 0) > 0)
+              .toList(),
           customerId: _selectedCustomerId, // Truyền khach_id
         ),
       ),
@@ -215,7 +217,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
               if (product_chinh['ma_vach'] == product['ma_vach'] &&
                   product_chinh['qua_tang'] != null &&
                   product_chinh['qua_tang'].isNotEmpty) {
-                  product_chinh['chon_qua_tang'] = 1; // Cập nhật giá trị
+                product_chinh['chon_qua_tang'] = 1; // Cập nhật giá trị
                 break; // Thoát vòng lặp nếu tìm thấy
               }
             }
@@ -236,6 +238,9 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
       setState(() {}); // Cập nhật giao diện
     }
+    // else {
+    //   removeGiftProducts(product['ma_vach']);
+    // }
   }
 
   Widget _buildEmployeeAndCustomerSection() {
@@ -421,8 +426,17 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                         if (product['so_luong'] < 0) {
                                           product['so_luong'] = 0;
                                         }
-                                        if (product['so_luong'] == 0) {}
-                                        //checkQuaTang(); // Re-check gifts after removing
+                                        if (product['so_luong'] == 0) {
+                                          // Xóa sản phẩm chính và quà tặng liên quan
+                                          removeGiftProducts(
+                                              product['ma_vach']);
+                                          _selectedProducts.removeWhere((sp) =>
+                                              sp['ma_vach'] ==
+                                              product['ma_vach']);
+                                          _products.removeWhere((sp) =>
+                                              sp['ma_vach'] ==
+                                              product['ma_vach']);
+                                        }
                                       });
                                     },
                                   ),
@@ -505,16 +519,16 @@ class _BanHangScreenState extends State<BanHangScreen> {
             );
           } else {
             // Chuyển sang trang thanh toán nếu có sản phẩm được chọn
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PaymentPage(
-                    selectedProducts: _selectedProducts
-                        .where((_selectedProducts) =>
-                            (_selectedProducts['so_luong'] ?? 0) > 0)
-                        .toList()),
-              ),
-            );
+            // Navigator.push(
+            //   context,
+            //   MaterialPageRoute(
+            //     builder: (context) => PaymentPage(
+            //         selectedProducts: _selectedProducts
+            //             .where((_selectedProducts) =>
+            //                 (_selectedProducts['so_luong'] ?? 0) > 0)
+            //             .toList()),
+            //   ),
+            // );
             _navigateToPaymentPage();
           }
         },
@@ -661,6 +675,19 @@ class _BanHangScreenState extends State<BanHangScreen> {
         });
       }
     }
+  }
+
+  void removeGiftProducts(String mainProductCode) {
+    setState(() {
+      _selectedProducts.removeWhere((product) {
+        return product['qua_tang'] != null &&
+            product['qua_tang'] == mainProductCode;
+      });
+      _products.removeWhere((product) {
+        return product['qua_tang'] != null &&
+            product['qua_tang'] == mainProductCode;
+      });
+    });
   }
 
   void _onContinue() {
