@@ -43,6 +43,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
       _onSearch();
     });
     //checkQuaTang();
+    fetchAppInfo();
     _scrollController.addListener(_onScroll);
   }
 
@@ -182,16 +183,26 @@ class _BanHangScreenState extends State<BanHangScreen> {
         'user_key_app': userKeyApp,
       });
 
+      debugPrint("Response: ${response.toString()}");
+
       if (response != null && response['loi'] == 0) {
         setState(() {
           // Lưu danh sách ngân hàng từ response
           _bankList = response['ngan_hang_list'] ?? [];
-          int chonNhanVien = response['chon_nhan_vien'];
+
+          int chonNhanVien = response['chon_nhan_vien'] ?? 0; // Mặc định là 0
+          debugPrint("Danh sách nhân viên: ${response['nv_list']}");
 
           if (chonNhanVien == 1) {
             // Hiển thị danh sách nhân viên
             _showEmployeeDropdown = true;
-            _employeeList = response['nv_list'] as List<dynamic>;
+
+            // Đảm bảo response['nv_list'] là danh sách
+            if (response['nv_list'] is List) {
+              _employeeList = response['nv_list'] as List<dynamic>;
+            } else {
+              _employeeList = []; // Gán danh sách rỗng nếu không hợp lệ
+            }
           } else if (chonNhanVien == 2) {
             // Gọi hàm quét nhân viên
             _startBarcodeScanning(true);
