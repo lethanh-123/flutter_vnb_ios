@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vnb_ios/api_service.dart';
-import 'preferences.dart'; // Import the Preferences class
+import 'preferences.dart';
+import 'api_service.dart';
+import 'dart:convert';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +18,25 @@ class LoginScreenState extends State<LoginScreen> {
       TextEditingController(text: "nv_quan10");
   final TextEditingController passwordController =
       TextEditingController(text: "123456@@");
-  final FocusNode passwordFocusNode = FocusNode(); // Add this line
+  final FocusNode passwordFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeUsername();
+  }
+
+  Future<void> _initializeUsername() async {
+    // Lấy tên đăng nhập đã lưu từ Preferences và hiển thị
+    final savedUsername = await Preferences.getUser();
+    if (savedUsername != null) {
+      final userInfo = json.decode(savedUsername);
+      setState(() {
+        usernameController.text = userInfo['user'] ?? '';
+      });
+    }
+  }
+
   void showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -53,13 +74,17 @@ class LoginScreenState extends State<LoginScreen> {
     if (response != null &&
         response['tv_id'] != null &&
         response['tv_id'] > 0) {
-      // Use Preferences.saveUserInfo instead of SharedPreferences.saveUserInfo
       await Preferences.saveUserInfo(response);
+
+      // Lưu tên đăng nhập
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('saved_username', username);
+
       navigateToHomeScreen();
     } else {
       showErrorDialog("Thông tin đăng nhập không đúng");
       passwordController.clear();
-      passwordFocusNode.requestFocus(); // Use FocusNode to request focus
+      passwordFocusNode.requestFocus();
     }
   }
 
@@ -69,7 +94,7 @@ class LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    passwordFocusNode.dispose(); // Don't forget to dispose FocusNode
+    passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -105,12 +130,14 @@ class LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => passwordFocusNode.requestFocus(),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
-                  focusNode: passwordFocusNode, // Set the focus node here
+                  focusNode: passwordFocusNode,
                   decoration: InputDecoration(
                     hintText: "Mật khẩu",
                     filled: true,
@@ -119,6 +146,7 @@ class LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                  onSubmitted: (_) => login(),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -136,9 +164,14 @@ class LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  "Phần mềm kiểm hàng - phiên bản: 1.0",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                FutureBuilder<String>(
+                  future: _getAppVersion(),
+                  builder: (context, snapshot) {
+                    return Text(
+                      snapshot.data ?? "Đang tải thông tin phiên bản...",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    );
+                  },
                 ),
               ],
             ),
@@ -146,5 +179,13 @@ class LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  Future<String> _getAppVersion() async {
+    // Lấy thông tin phiên bản từ Android
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    String version = packageInfo.version; // This is the app version
+
+    return "Phần mềm kiểm hàng - phiên bản: $version";
   }
 }

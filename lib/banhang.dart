@@ -20,7 +20,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, dynamic>> _products = [];
   final List<Map<String, dynamic>> _selectedProducts = [];
-
+  String? _selectedEmployeeId;
   bool _isFetchingProducts = false;
   bool _isScanning = false;
   String _selectedCustomer = 'Chọn khách hàng';
@@ -33,6 +33,9 @@ class _BanHangScreenState extends State<BanHangScreen> {
   bool dung_tim_kiem = false;
   bool _isLoading = false;
   List<Map<String, dynamic>> gifts = [];
+  List<dynamic> _employeeList = [];
+  bool _showEmployeeDropdown = false;
+  List<dynamic> _bankList = [];
   @override
   void initState() {
     super.initState();
@@ -169,6 +172,46 @@ class _BanHangScreenState extends State<BanHangScreen> {
     );
   }
 
+  Future<void> fetchAppInfo() async {
+    try {
+      dynamic keyChiNhanh = await Preferences.getKeyChiNhanh();
+      dynamic userKeyApp = await Preferences.getUserKeyApp();
+
+      final response = await ApiService.callApi('get_info_app', {
+        'key_chi_nhanh': keyChiNhanh,
+        'user_key_app': userKeyApp,
+      });
+
+      if (response != null && response['loi'] == 0) {
+        setState(() {
+          // Lưu danh sách ngân hàng từ response
+          _bankList = response['ngan_hang_list'] ?? [];
+          int chonNhanVien = response['chon_nhan_vien'];
+
+          if (chonNhanVien == 1) {
+            // Hiển thị danh sách nhân viên
+            _showEmployeeDropdown = true;
+            _employeeList = response['nv_list'] as List<dynamic>;
+          } else if (chonNhanVien == 2) {
+            // Gọi hàm quét nhân viên
+            _startBarcodeScanning(true);
+          } else if (chonNhanVien == 0) {
+            // Hiển thị luôn nhân viên đăng nhập
+            _showEmployeeDropdown = false;
+            employeeName = response['ten_thanh_vien'] ?? '';
+            _selectedEmployee = "Nhân viên bán hàng: $employeeName";
+          }
+        });
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi lấy thông tin ứng dụng: $e')),
+      );
+    }
+  }
+
   void _handleEmployeeSelection() {
     _startBarcodeScanning(true); // Quét mã QR trước
   }
@@ -249,19 +292,35 @@ class _BanHangScreenState extends State<BanHangScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ElevatedButton(
-              onPressed: _handleEmployeeSelection, // Refactored async call
+          if (_showEmployeeDropdown && _employeeList.isNotEmpty) ...[
+            DropdownButton<String>(
+              value: _selectedEmployeeId,
+              items: _employeeList.map((employee) {
+                return DropdownMenuItem<String>(
+                  value: employee['id'].toString(),
+                  child: Text(employee['ten']),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedEmployeeId = value!;
+                  _selectedEmployee = _employeeList.firstWhere(
+                      (employee) => employee['id'].toString() == value)['ten'];
+                });
+              },
+            ),
+          ] else ...[
+            ElevatedButton(
+              onPressed: _handleEmployeeSelection,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: Text(
                 _selectedEmployee.isNotEmpty
                     ? _selectedEmployee
-                    : 'Chọn nhân viên',
+                    : 'Nhân viên bán hàng',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 3.0),
           Align(
             alignment: Alignment.centerLeft,
@@ -652,6 +711,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
           if (response != null && response['loi'] == 0) {
             setState(() {
+              _selectedEmployeeId = response['id']; // Lấy ID nhân viên
               employeeName = response['ho_ten'] ?? '';
               _selectedEmployee = employeeName;
             });
