@@ -200,12 +200,27 @@ class _BanHangScreenState extends State<BanHangScreen> {
             // Đảm bảo response['nv_list'] là danh sách
             if (response['nv_list'] is List) {
               _employeeList = response['nv_list'] as List<dynamic>;
+
+              // Thêm mục "Chọn nhân viên" vào đầu danh sách
+              _employeeList.insert(0, {'id': '', 'ten': 'Chọn nhân viên'});
+
+              // Cập nhật giao diện để hiển thị giá trị mặc định
+              setState(() {
+                _selectedEmployeeId = ''; // ID của "Chọn nhân viên"
+                _selectedEmployee = 'Chọn nhân viên'; // Tên hiển thị mặc định
+              });
             } else {
-              _employeeList = []; // Gán danh sách rỗng nếu không hợp lệ
+              // Nếu danh sách không hợp lệ, tạo danh sách chỉ có "Chọn nhân viên"
+              _employeeList = [
+                {'id': '', 'ten': 'Chọn nhân viên'}
+              ];
+              setState(() {
+                _selectedEmployeeId = ''; // ID mặc định
+                _selectedEmployee = 'Chọn nhân viên';
+              });
             }
           } else if (chonNhanVien == 2) {
-            // Gọi hàm quét nhân viên
-            _startBarcodeScanning(true);
+         
           } else if (chonNhanVien == 0) {
             // Hiển thị luôn nhân viên đăng nhập
             _showEmployeeDropdown = false;
@@ -318,6 +333,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
                   _selectedEmployee = _employeeList.firstWhere(
                       (employee) => employee['id'].toString() == value)['ten'];
                 });
+                debugPrint("_selectedEmployee" + _selectedEmployee);
               },
             ),
           ] else ...[
