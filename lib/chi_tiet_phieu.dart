@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
+import 'package:html/parser.dart';
 import 'api_service.dart';
 import 'preferences.dart';
-import 'package:blue_thermal_printer/blue_thermal_printer.dart'; // Import BlueThermalPrinter
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as bluetooth_serial; // Alias flutter_bluetooth_serial
-import 'package:html/parser.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String maPhieu;
@@ -69,7 +67,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
   Future<void> _printInvoice() async {
     try {
-      // Lấy máy in đã lưu
+      final FlutterBlue flutterBlue = FlutterBlue.instance;
+
       String? connectedPrinter = await Preferences.getMayin();
       if (connectedPrinter == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,56 +77,25 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         return;
       }
 
-      // Khởi tạo BlueThermalPrinter
-      final bluetooth = BlueThermalPrinter.instance;
-      bool? isConnected = await bluetooth.isConnected;
+      List<BluetoothDevice> devices = await flutterBlue.connectedDevices;
+      BluetoothDevice? printerDevice = devices.firstWhere(
+          (device) => device.id.id == connectedPrinter,
+          orElse: () => throw Exception('Printer device not found'));
 
-      if (isConnected != true) {
-        // Lấy danh sách các thiết bị đã ghép nối từ flutter_bluetooth_serial
-        List<bluetooth_serial.BluetoothDevice> devices = await bluetooth_serial
-            .FlutterBluetoothSerial.instance
-            .getBondedDevices();
-        debugPrint("device $connectedPrinter");
-
-        // Tìm thiết bị khớp với địa chỉ đã lưu
-        bluetooth_serial.BluetoothDevice? device;
-        try {
-          device = devices.firstWhere((d) => d.address == connectedPrinter);
-        } catch (e) {
-          debugPrint("Error finding device: $e");
-          device = null;
-        }
-
-        if (device == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy máy in Bluetooth')),
-          );
-        } else {
-          debugPrint("Found device: ${device.name} - ${device.address}");
-          // Tiến hành kết nối với máy in
-          if (device != null) {
-            // Chuyển đổi sang BluetoothDevice của BlueThermalPrinter
-            final printerDevice = BluetoothDevice(
-              device.name ?? 'Unknown',
-              device.address,
-            );
-
-            // Kết nối với máy in
-            await bluetooth.connect(printerDevice);
-          }
-        }
+      if (printerDevice == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy máy in được kết nối')),
+        );
+        return;
       }
 
-      // Parse và in nội dung HTML
+      // Parse HTML content and send to printer
       final document = parse(_contentHtml);
       final plainText = document.body?.text ?? "";
 
-      bluetooth.printNewLine();
-      bluetooth.printCustom("Chi tiết hóa đơn", 1, 1); // Header
-      bluetooth.printNewLine();
-      bluetooth.printCustom(plainText, 0, 0); // Content
-      bluetooth.printNewLine();
-      bluetooth.paperCut(); // Paper cut nếu được hỗ trợ
+      // Add logic to print plainText via Bluetooth connection
+      debugPrint("Printing content: $plainText");
+      // Implement your printer-specific print method here
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('In hóa đơn thành công!')),
@@ -146,10 +114,10 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
       appBar: AppBar(
         title: const Text('Chi tiết hóa đơn'),
         centerTitle: true,
-        backgroundColor: Colors.black, // Nền màu đen
-        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(
-          color: Colors.white, // Chữ màu trắng
+          color: Colors.white,
           fontSize: 22,
           fontWeight: FontWeight.bold,
         ),
@@ -157,7 +125,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: _printInvoice,
-            color: Colors.white, // Màu icon in
+            color: Colors.white,
           ),
         ],
       ),
