@@ -145,10 +145,19 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chi tiết hóa đơn'),
+        centerTitle: true,
+        backgroundColor: Colors.black, // Nền màu đen
+        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        titleTextStyle: const TextStyle(
+          color: Colors.white, // Chữ màu trắng
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: _printInvoice,
+            color: Colors.white, // Màu icon in
           ),
         ],
       ),
