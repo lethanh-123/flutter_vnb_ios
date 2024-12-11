@@ -42,7 +42,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int notificationType = 0;
   final FlutterTts flutterTts = FlutterTts();
   final AudioPlayer audioPlayer = AudioPlayer();
-
+  String employeeName = '';
   @override
   void initState() {
     super.initState();
@@ -163,7 +163,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
     switch (notificationType) {
       case 0: // Tiếng bíp
         await audioPlayer
-            .play(AssetSource('sounds/beep.mp3')); // Đường dẫn file âm thanh
+            .play(AssetSource('beep.mp3')); // Đường dẫn file âm thanh
         break;
       case 1: // Giọng nói
         await flutterTts.speak("Sản phẩm: $productName");
@@ -276,10 +276,12 @@ class _BanHangScreenState extends State<BanHangScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => PaymentPage(
+          employeeName: _selectedEmployee,
           selectedProducts: _selectedProducts
               .where((product) => (product['so_luong'] ?? 0) > 0)
               .toList(),
           customerId: _selectedCustomerId, // Truyền khach_id
+          selectedCustomer: _selectedCustomer,
         ),
       ),
     );
@@ -413,11 +415,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
   void _selectEmployee() {
     setState(() {
-      _selectedEmployee = employeeName; // Update selected employee name
+      _selectedEmployee = employeeName;
     });
   }
 
-  String employeeName = '';
   String? _scannedCode; // Biến lưu mã QR quét được
   Widget _buildProductList() {
     return Expanded(
@@ -742,7 +743,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
       false,
       ScanMode.BARCODE,
     );
-
+    debugPrint('Scanned barcode: $barcode');
     if (barcode != "-1") {
       setState(() => _isScanning = true);
 
@@ -777,16 +778,31 @@ class _BanHangScreenState extends State<BanHangScreen> {
           }
         } else {
           // Product scanning logic
+          final String? userKeyApp =
+              await Preferences.get_user_info("user_key_app");
+          final String? branchKey = await Preferences.getKeyChiNhanh();
+
+          if (userKeyApp == null || branchKey == null) {
+            throw Exception('Thông tin không đầy đủ.');
+          }
+
+          final requestData = {
+            'user_key_app': userKeyApp,
+            'key_chi_nhanh': branchKey,
+            'ma_code': '',
+            'ma_vach': barcode,
+          };
+
           final response =
-              await ApiService.callApi('get_chip_code', {'ma_code': barcode});
-          if (response != null) {
-            final productName = response['product']['name'] ?? 'Sản phẩm';
-            debugPrint("productName" + productName);
-            debugPrint("response" + response.toString());
+              await ApiService.callApi('get_chip_code', requestData);
+          if (response != null && response['loi'] == 0) {
+            final productName = response['ten_sp'] ?? 'Sản phẩm';
             setState(() {
               _scanStatus = 'Đã quét thành công: $productName';
-              _selectedProducts.add(response['product']);
+              _selectedProducts.add(response);
             });
+            debugPrint("requestDataxvxv" + requestData.toString());
+            debugPrint("responsevxvxv" + response.toString());
             await _playNotification(productName); // Play sound or read name
           } else {
             setState(() {

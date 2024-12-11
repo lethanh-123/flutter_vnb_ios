@@ -11,8 +11,12 @@ import 'functions.dart';
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> selectedProducts;
   final String? customerId; // Thêm khach_id
+  final String employeeName;
+  final String selectedCustomer;
   const PaymentPage({
     Key? key,
+    required this.employeeName,
+    required this.selectedCustomer,
     required this.selectedProducts,
     this.customerId, // Nhận khach_id từ constructor
   }) : super(key: key);
@@ -263,6 +267,14 @@ class _PaymentPageState extends State<PaymentPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hóa Đơn'),
+        centerTitle: true,
+        backgroundColor: Colors.black, // Nền màu đen
+        iconTheme: const IconThemeData(color: Colors.white), // Icon màu trắng
+        titleTextStyle: const TextStyle(
+          color: Colors.white, // Chữ màu trắng
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -276,7 +288,11 @@ class _PaymentPageState extends State<PaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader('Thông tin khách hàng', Colors.deepOrange),
+              // Hiển thị tên nhân viên
+              _buildHeader('Nhân viên: ${widget.employeeName}', Colors.green),
+
+              const SizedBox(height: 10),
+              _buildHeader(widget.selectedCustomer, Colors.deepOrange),
               const SizedBox(height: 16),
               _buildProductList(),
 
