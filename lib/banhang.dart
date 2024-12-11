@@ -7,6 +7,9 @@ import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'thanh_toan.dart';
 import 'danh_sach_khach_hang.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Đọc giọng nói
+import 'package:audioplayers/audioplayers.dart'; // Phát âm thanh
+import 'package:shared_preferences/shared_preferences.dart'; // Lưu cài đặt
 
 class BanHangScreen extends StatefulWidget {
   const BanHangScreen({super.key});
@@ -36,6 +39,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
   List<dynamic> _employeeList = [];
   bool _showEmployeeDropdown = false;
   List<dynamic> _bankList = [];
+  int notificationType = 0;
+  final FlutterTts flutterTts = FlutterTts();
+  final AudioPlayer audioPlayer = AudioPlayer();
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +51,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
     });
     //checkQuaTang();
     fetchAppInfo();
+    _loadNotificationType();
     _scrollController.addListener(_onScroll);
   }
 
@@ -146,6 +154,27 @@ class _BanHangScreenState extends State<BanHangScreen> {
     );
   }
 
+  Future<void> _loadNotificationType() async {
+    final prefs = await SharedPreferences.getInstance();
+    notificationType = prefs.getInt('notificationType') ?? 0;
+  }
+
+  Future<void> _playNotification(String productName) async {
+    switch (notificationType) {
+      case 0: // Tiếng bíp
+        await audioPlayer
+            .play(AssetSource('sounds/beep.mp3')); // Đường dẫn file âm thanh
+        break;
+      case 1: // Giọng nói
+        await flutterTts.speak("Sản phẩm: $productName");
+        break;
+      case 2: // Không âm thanh
+      default:
+        // Không làm gì
+        break;
+    }
+  }
+
   Widget _buildSearchSection() {
     return Padding(
       padding: const EdgeInsets.all(3.0),
@@ -220,7 +249,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
               });
             }
           } else if (chonNhanVien == 2) {
-         
           } else if (chonNhanVien == 0) {
             // Hiển thị luôn nhân viên đăng nhập
             _showEmployeeDropdown = false;
@@ -707,7 +735,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
     }
   }
 
-  void _startBarcodeScanning(bool quet_nv) async {
+  void _startBarcodeScanning(bool isEmployeeScan) async {
     final barcode = await FlutterBarcodeScanner.scanBarcode(
       "#ff6666",
       "Hủy",
@@ -717,49 +745,57 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
     if (barcode != "-1") {
       setState(() => _isScanning = true);
-      if (quet_nv) {
-        //Gọi hàm quét nhân viên ở đây
-        try {
-          final String? user_key_app =
-              await Preferences.get_user_info("user_key_app");
-          final String? keyChiNhanh = await Preferences.getKeyChiNhanh();
 
-          if (user_key_app == null || keyChiNhanh == null || barcode == null) {
-            throw Exception('Thông tin không đầy đủ hoặc chưa quét mã QR.');
+      try {
+        if (isEmployeeScan) {
+          // Employee scanning logic
+          final String? userKeyApp =
+              await Preferences.get_user_info("user_key_app");
+          final String? branchKey = await Preferences.getKeyChiNhanh();
+
+          if (userKeyApp == null || branchKey == null) {
+            throw Exception('Thông tin không đầy đủ.');
           }
-          var header = {
-            'key_chi_nhanh': keyChiNhanh,
-            'user_key_app': user_key_app,
-            'ma_vach': barcode, // Gửi mã QR quét được
+
+          final header = {
+            'key_chi_nhanh': branchKey,
+            'user_key_app': userKeyApp,
+            'ma_vach': barcode,
           };
-          debugPrint(header.toString());
+
           final response =
               await ApiService.callApi('check_ma_nhan_vien', header);
 
           if (response != null && response['loi'] == 0) {
             setState(() {
-              _selectedEmployeeId = response['id']; // Lấy ID nhân viên
               employeeName = response['ho_ten'] ?? '';
-              _selectedEmployee = employeeName;
+              //  _selectedEmployee = employeeName;
+              _selectedEmployeeId = response['id'];
             });
           } else {
             throw Exception(response?['txt_loi'] ?? 'Lỗi không xác định.');
           }
-        } catch (error) {
-          debugPrint('Lỗi khi lấy dữ liệu nhân viên: $error');
-          throw error;
-        }
-      } else {
-        final response =
-            await ApiService.callApi('get_chip_code', {'ma_code': barcode});
-        setState(() {
-          _isScanning = false;
+        } else {
+          // Product scanning logic
+          final response =
+              await ApiService.callApi('get_chip_code', {'ma_code': barcode});
           if (response != null && response['success'] == true) {
-            _scanStatus = 'Đã quét thành công: ${response['product']['name']}';
+            final productName = response['product']['name'] ?? 'Sản phẩm';
+            setState(() {
+              _scanStatus = 'Đã quét thành công: $productName';
+              _selectedProducts.add(response['product']);
+            });
+            await _playNotification(productName); // Play sound or read name
           } else {
-            _scanStatus = 'Không tìm thấy sản phẩm: $barcode';
+            setState(() {
+              _scanStatus = 'Không tìm thấy sản phẩm: $barcode';
+            });
           }
-        });
+        }
+      } catch (error) {
+        debugPrint('Error during scanning: $error');
+      } finally {
+        setState(() => _isScanning = false);
       }
     }
   }
