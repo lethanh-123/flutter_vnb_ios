@@ -769,7 +769,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
           if (response != null && response['loi'] == 0) {
             setState(() {
               employeeName = response['ho_ten'] ?? '';
-              //  _selectedEmployee = employeeName;
+              _selectedEmployee = employeeName;
               _selectedEmployeeId = response['id'];
             });
           } else {
@@ -779,8 +779,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
           // Product scanning logic
           final response =
               await ApiService.callApi('get_chip_code', {'ma_code': barcode});
-          if (response != null && response['success'] == true) {
+          if (response != null) {
             final productName = response['product']['name'] ?? 'Sản phẩm';
+            debugPrint("productName" + productName);
+            debugPrint("response" + response.toString());
             setState(() {
               _scanStatus = 'Đã quét thành công: $productName';
               _selectedProducts.add(response['product']);
