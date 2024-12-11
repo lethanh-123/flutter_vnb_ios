@@ -44,6 +44,8 @@ dependencies:
   blue_thermal_printer: ^1.2.3
   html: ^0.15.4
   package_info_plus: ^8.1.1
+  flutter_tts: ^4.2.0
+  audioplayers: ^6.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -72,6 +74,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/icon_vnb.png
+    - assets/beep.mp3
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

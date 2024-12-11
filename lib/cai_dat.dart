@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'preferences.dart';
 import 'printer_setup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -101,10 +102,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   DropdownMenuItem(value: 1, child: Text('Giọng nói')),
                   DropdownMenuItem(value: 2, child: Text('Không âm thanh')),
                 ],
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     notificationType = value!;
                   });
+                  await _saveNotificationType(value!);
                 },
               ),
               SizedBox(height: 16.0),
@@ -130,6 +132,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  void _loadSettings() async {
+    final type = await _getNotificationType();
+    setState(() {
+      notificationType = type;
+    });
+  }
+
+  Future<void> _saveNotificationType(int type) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('notificationType', type);
+  }
+
+  Future<int> _getNotificationType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('notificationType') ?? 0; // Mặc định là 'Tiếng bíp'
   }
 
 // Hàm bổ trợ để lấy nhãn của giá trị đã chọn
