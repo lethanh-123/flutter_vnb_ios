@@ -448,22 +448,23 @@ class _PaymentPageState extends State<PaymentPage> {
   Widget _buildProductList() {
     return Column(
       children: widget.selectedProducts.map((product) {
-        String productId =
-            product['qua_tang'] != null && product['qua_tang_list'] != null
-                ? product['qua_tang_list']['ma_vach'] ?? ''
-                : product['ma_vach'] ?? '';
+        String productId = product['ma_vach'] ?? '';
         String ghiChu = product['ghi_chu'] ?? ''; // Ghi chú hiện tại
         String discountNote = product['discountNote'] ?? ''; // Ghi chú giảm giá
         bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
 
         // Truy xuất dữ liệu giftData
 
-        final listTangKem = product['list_tang_kem'] != null
+        var listTangKem = product['list_tang_kem'] != null
             ? product['list_tang_kem'] as List
+            : [];
+
+        var qua_tang_list = product['qua_tang_list'] != null
+            ? product['qua_tang_list'] as List
             : [];
         // Lấy giá trị data_length
         int doi_qua_tang = product['doi_qua_tang'] ?? 0;
-
+        debugPrint(product['ten_sp'] + "- " + doi_qua_tang.toString());
         return Card(
           margin: const EdgeInsets.all(8.0),
           child: Padding(
@@ -560,11 +561,19 @@ class _PaymentPageState extends State<PaymentPage> {
                           doi_qua_tang > 1 ? Colors.green : Colors.deepOrange,
                     ),
                     onPressed: () async {
-                      await _showGiftSelectionDialog(
-                        product,
-                        listTangKem,
-                        doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
-                      );
+                      if (doi_qua_tang > 1) {
+                        await _showGiftSelectionDialog(
+                          product,
+                          listTangKem,
+                          doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                        );
+                      } else {
+                        await _showQuaTangDialog(
+                          product,
+                          qua_tang_list,
+                          doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
+                        );
+                      }
                     },
                     child: Text(
                       doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
@@ -701,6 +710,138 @@ class _PaymentPageState extends State<PaymentPage> {
                             children: [
                               Text(
                                 gift['ten_sp'] ?? 'Tên quà tặng',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                gift['ma_vach'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          formatCurrency(gift['gia']),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đóng'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showQuaTangDialog(
+      dynamic product, List<dynamic> giftList, String title) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: giftList.length,
+              itemBuilder: (context, index) {
+                var gift = giftList[index];
+                debugPrint("giftList[$index]" + gift.toString());
+                gift['ten_sp'] = gift['qua_tang_list']['ten_sp'];
+                gift['ma_vach'] = gift['qua_tang_list']['ma_vach'];
+                gift['don_gia'] = gift['qua_tang_list']['gia'];
+                gift['gia'] = gift['qua_tang_list']['gia'];
+                gift['so_luong'] = gift['qua_tang_list']['so_luong'];
+                gift['list_tang_kem'] = gift['qua_tang_list']['list_tang_kem'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      for (var product_qua_tang in widget.selectedProducts) {
+                        if (product_qua_tang['qua_tang'] ==
+                                product['ma_vach'] &&
+                            (product_qua_tang['qua_tang'] != null &&
+                                product_qua_tang['qua_tang'].isNotEmpty &&
+                                product_qua_tang['doi_qua_tang'] == 2)) {
+                          product_qua_tang['ten_sp'] = gift['ten_sp'];
+                          product_qua_tang['ma_vach'] = gift['ma_vach'];
+                          product_qua_tang['don_gia'] = gift['gia'];
+                          product_qua_tang['so_luong'] =
+                              gift['so_luong'] * product['so_luong'];
+
+                          break; // Thoát vòng lặp nếu tìm thấy
+                        }
+                        product['list_tang_kem'] = gift['list_tang_kem'];
+                      }
+                      // Cập nhật thông tin sản phẩm với quà tặng đã chọn
+                      /*
+                      product['ten_sp'] = gift['ten_sp'];
+                      product['ma_vach'] = gift['ma_vach'];
+                      product['don_gia'] = gift['gia'];
+                      product['so_luong'] = gift['so_luong'];
+                      */
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white, // Nền trắng
+                      border: Border.all(
+                        color: Colors.grey.shade300, // Màu viền
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8), // Bo góc
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2), // Đổ bóng
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Hình ảnh quà tặng nếu có
+                        gift['image_url'] != null
+                            ? Container(
+                                width: 50,
+                                height: 50,
+                                margin: const EdgeInsets.only(right: 12),
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(gift['image_url']),
+                                    fit: BoxFit.cover,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                gift['ten'] ?? 'Tên quà tặng',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

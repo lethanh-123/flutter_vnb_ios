@@ -314,9 +314,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
           if (data.length > 1) {
             for (var product_chinh in _selectedProducts) {
               if (product_chinh['ma_vach'] == product['ma_vach'] &&
-                  product_chinh['qua_tang'] != null &&
-                  product_chinh['qua_tang'].isNotEmpty) {
-                product_chinh['chon_qua_tang'] = 1; // Cập nhật giá trị
+                  (product_chinh['qua_tang'] == null ||
+                      product_chinh['qua_tang'].isEmpty)) {
+                product_chinh['doi_qua_tang'] = 1; // Cập nhật giá trị
+                product_chinh['qua_tang_list'] = data; // Cập nhật giá trị
                 break; // Thoát vòng lặp nếu tìm thấy
               }
             }
