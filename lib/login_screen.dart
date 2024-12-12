@@ -15,9 +15,9 @@ class LoginScreen extends StatefulWidget {
 
 class LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController =
-      TextEditingController(text: "nv_quan10");
+      TextEditingController(text: "0854811078");
   final TextEditingController passwordController =
-      TextEditingController(text: "123456@@");
+      TextEditingController(text: "123456");
   final FocusNode passwordFocusNode = FocusNode();
 
   @override

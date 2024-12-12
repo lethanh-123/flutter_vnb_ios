@@ -35,6 +35,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   int trang_tim_kiem = 1;
   bool dung_tim_kiem = false;
   bool _isLoading = false;
+  int? _selectedEmployeeIdInt;
   List<Map<String, dynamic>> gifts = [];
   List<dynamic> _employeeList = [];
   bool _showEmployeeDropdown = false;
@@ -599,6 +600,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
   }
 
   Widget _buildContinueButton() {
+    debugPrint("_selectedEmployeeIdInt $_selectedEmployeeIdInt");
     return SizedBox(
       width: double.infinity, // Chiều rộng full màn hình
       child: ElevatedButton(
@@ -614,7 +616,47 @@ class _BanHangScreenState extends State<BanHangScreen> {
             totalQuantity += product['so_luong'] ?? 0;
           }
 
-          if (totalQuantity == 0) {
+          // Kiểm tra các điều kiện
+          if ((_selectedCustomerId ?? '').isEmpty) {
+            // Hiển thị thông báo nếu chưa chọn khách hàng
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Thông báo'),
+                  content: const Text('Vui lòng chọn khách hàng.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else if ((_selectedEmployeeId ?? '').isEmpty &&
+              _selectedEmployeeIdInt == 0) {
+            // Hiển thị thông báo nếu chưa chọn nhân viên
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Thông báo'),
+                  content: const Text('Vui lòng chọn nhân viên bán hàng.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else if (totalQuantity == 0) {
             // Hiển thị thông báo nếu không có sản phẩm nào được chọn
             showDialog(
               context: context,
@@ -634,17 +676,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
               },
             );
           } else {
-            // Chuyển sang trang thanh toán nếu có sản phẩm được chọn
-            // Navigator.push(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (context) => PaymentPage(
-            //         selectedProducts: _selectedProducts
-            //             .where((_selectedProducts) =>
-            //                 (_selectedProducts['so_luong'] ?? 0) > 0)
-            //             .toList()),
-            //   ),
-            // );
+            // Điều hướng qua trang thanh toán nếu tất cả điều kiện đều đúng
             _navigateToPaymentPage();
           }
         },
@@ -773,6 +805,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
               employeeName = response['ho_ten'] ?? '';
               _selectedEmployee = employeeName;
               _selectedEmployeeId = response['id'];
+              _selectedEmployeeIdInt = response['tv_id'];
             });
           } else {
             throw Exception(response?['txt_loi'] ?? 'Lỗi không xác định.');
