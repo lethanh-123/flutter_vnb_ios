@@ -282,6 +282,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
               .where((product) => (product['so_luong'] ?? 0) > 0)
               .toList(),
           customerId: _selectedCustomerId, // Truyền khach_id
+          selectedEmployeeId: _selectedEmployeeId ?? '',
+          selectedEmployeeIdInt: _selectedEmployeeIdInt ?? 0,
           selectedCustomer: _selectedCustomer,
         ),
       ),

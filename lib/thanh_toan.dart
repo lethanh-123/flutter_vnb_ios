@@ -13,11 +13,15 @@ class PaymentPage extends StatefulWidget {
   final String? customerId; // Thêm khach_id
   final String employeeName;
   final String selectedCustomer;
+  final String selectedEmployeeId;
+  final int selectedEmployeeIdInt;
   const PaymentPage({
     Key? key,
     required this.employeeName,
     required this.selectedCustomer,
     required this.selectedProducts,
+    required this.selectedEmployeeId,
+    required this.selectedEmployeeIdInt,
     this.customerId, // Nhận khach_id từ constructor
   }) : super(key: key);
 
@@ -154,7 +158,7 @@ class _PaymentPageState extends State<PaymentPage> {
     };
 
     final response = await ApiService.callApi('ap_dung_ma_giam_gia', request);
-
+    debugPrint("rrequestfasf " + request.toString());
     debugPrint("responsefasf " + response.toString());
     if (response != null) {
       setState(() {
@@ -217,7 +221,11 @@ class _PaymentPageState extends State<PaymentPage> {
       int khachId = khachInfo['id'];
       String keyChiNhanh = userInfo['key_chi_nhanh'];
       String userKeyApp = userInfo['user_key_app'];
-
+      final nhanVienId = widget.selectedEmployeeIdInt != 0
+          ? widget.selectedEmployeeIdInt
+          : (widget.selectedEmployeeId.isNotEmpty
+              ? int.tryParse(widget.selectedEmployeeId) ?? 0
+              : 0);
       // Chuẩn bị dữ liệu sản phẩm
       List<Map<String, dynamic>> productsJsonArray = widget.selectedProducts;
       // Tạo requestData
@@ -231,7 +239,7 @@ class _PaymentPageState extends State<PaymentPage> {
             transferController.text.trim(), // Tiền chuyển khoản từ TextField
         "ngan_hang": selectedBank, // Ngân hàng được chọn từ Dropdown
         "tien_mat": cashController.text.trim(),
-        // "nhan_vien_id": nhanVienId,
+        "nhan_vien_id": nhanVienId,
         "ghi_chu": noteController.text.trim(),
         "key_chi_nhanh": keyChiNhanh, // Key chi nhánh
       };
