@@ -3,16 +3,29 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
 import 'api_service.dart';
 import 'preferences.dart';
-import 'package:blue_thermal_printer/blue_thermal_printer.dart'; // Import BlueThermalPrinter
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
     as bluetooth_serial; // Alias flutter_bluetooth_serial
 import 'package:html/parser.dart';
 
+import 'dart:async';
+import 'package:another_brother/printer_info.dart' as brother;
+import 'package:another_brother/label_info.dart';
+
+import 'dart:async';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:another_brother/printer_info.dart' as brother;
+import 'package:another_brother/label_info.dart';
+import 'package:html/parser.dart'; // For parsing HTML
+import 'preferences.dart';
+import 'api_service.dart';
+
 class InvoiceDetailScreen extends StatefulWidget {
   final String maPhieu;
 
-  const InvoiceDetailScreen({Key? key, required this.maPhieu})
-      : super(key: key);
+  const InvoiceDetailScreen({Key? key, required this.maPhieu}) : super(key: key);
 
   @override
   _InvoiceDetailScreenState createState() => _InvoiceDetailScreenState();
@@ -69,65 +82,54 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
   Future<void> _printInvoice() async {
     try {
-      // Lấy máy in đã lưu
-      String? connectedPrinter = await Preferences.getMayin();
-      if (connectedPrinter == null) {
+      // Parse the content into plain text for printing
+      final document = parse(_contentHtml);
+      final plainText = document.body?.text ?? "";
+
+      // Configure printer
+      brother.Printer printer = brother.Printer();
+      brother.PrinterInfo printInfo = brother.PrinterInfo();
+
+      printInfo.printerModel = brother.Model.QL_1110NWB;
+      printInfo.printMode = brother.PrintMode.FIT_TO_PAGE;
+      printInfo.isAutoCut = true;
+      printInfo.orientation = brother.Orientation.PORTRAIT;
+      printInfo.port = brother.Port.BLUETOOTH;
+      printInfo.align = brother.Align.CENTER;
+
+      // Set label type
+      printInfo.labelNameIndex = QL1100.ordinalFromID(QL1100.W103H164.getId());
+
+      await printer.setPrinterInfo(printInfo);
+
+      // Discover available printers
+      List<brother.BluetoothPrinter> printers = await printer
+          .getBluetoothPrinters([brother.Model.QL_1110NWB.getName()]);
+
+      if (printers.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không có máy in nào được kết nối')),
+          const SnackBar(content: Text('Không tìm thấy máy in Bluetooth')),
         );
         return;
       }
 
-      // Khởi tạo BlueThermalPrinter
-      final bluetooth = BlueThermalPrinter.instance;
-      bool? isConnected = await bluetooth.isConnected;
+      // Use the first discovered printer
+      printInfo.macAddress = printers.first.macAddress;
+      await printer.setPrinterInfo(printInfo);
 
-      if (isConnected != true) {
-        // Lấy danh sách các thiết bị đã ghép nối từ flutter_bluetooth_serial
-        List<bluetooth_serial.BluetoothDevice> devices = await bluetooth_serial
-            .FlutterBluetoothSerial.instance
-            .getBondedDevices();
-        debugPrint("device $connectedPrinter");
+      // Convert plainText to Paragraph for printing
+      final ui.ParagraphBuilder paragraphBuilder = ui.ParagraphBuilder(
+        ui.ParagraphStyle(
+          textAlign: TextAlign.left,
+          fontSize: 14.0,
+        ),
+      )..addText(plainText);
 
-        // Tìm thiết bị khớp với địa chỉ đã lưu
-        bluetooth_serial.BluetoothDevice? device;
-        try {
-          device = devices.firstWhere((d) => d.address == connectedPrinter);
-        } catch (e) {
-          debugPrint("Error finding device: $e");
-          device = null;
-        }
+      final ui.Paragraph paragraph = paragraphBuilder.build()
+        ..layout(const ui.ParagraphConstraints(width: 300));
 
-        if (device == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy máy in Bluetooth')),
-          );
-        } else {
-          debugPrint("Found device: ${device.name} - ${device.address}");
-          // Tiến hành kết nối với máy in
-          if (device != null) {
-            // Chuyển đổi sang BluetoothDevice của BlueThermalPrinter
-            final printerDevice = BluetoothDevice(
-              device.name ?? 'Unknown',
-              device.address,
-            );
-
-            // Kết nối với máy in
-            await bluetooth.connect(printerDevice);
-          }
-        }
-      }
-
-      // Parse và in nội dung HTML
-      final document = parse(_contentHtml);
-      final plainText = document.body?.text ?? "";
-
-      bluetooth.printNewLine();
-      bluetooth.printCustom("Chi tiết hóa đơn", 1, 1); // Header
-      bluetooth.printNewLine();
-      bluetooth.printCustom(plainText, 0, 0); // Content
-      bluetooth.printNewLine();
-      bluetooth.paperCut(); // Paper cut nếu được hỗ trợ
+      // Print the Paragraph
+      await printer.printText(paragraph);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('In hóa đơn thành công!')),
