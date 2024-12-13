@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:convert';
+import 'package:esc_pos_bluetooth/esc_pos_bluetooth.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:html/parser.dart';
 import 'api_service.dart';
 import 'preferences.dart';
-import 'package:blue_thermal_printer/blue_thermal_printer.dart'; // Import BlueThermalPrinter
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'
-    as bluetooth_serial; // Alias flutter_bluetooth_serial
-import 'package:html/parser.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String maPhieu;
 
-  const InvoiceDetailScreen({Key? key, required this.maPhieu})
-      : super(key: key);
+  const InvoiceDetailScreen({Key? key, required this.maPhieu}) : super(key: key);
 
   @override
   _InvoiceDetailScreenState createState() => _InvoiceDetailScreenState();
@@ -21,6 +19,9 @@ class InvoiceDetailScreen extends StatefulWidget {
 class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   late WebViewController _webViewController;
   String _contentHtml = "";
+  final PrinterBluetoothManager _printerManager = PrinterBluetoothManager();
+  List<PrinterBluetooth> _availablePrinters = [];
+  PrinterBluetooth? _selectedPrinter;
 
   @override
   void initState() {
@@ -52,7 +53,6 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         setState(() {
           _contentHtml = response['content'];
         });
-        debugPrint("_contentHtml $_contentHtml");
         _webViewController.loadHtmlString(_contentHtml);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,71 +67,51 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     }
   }
 
+  Future<void> _startPrinterScan() async {
+    _printerManager.startScan(Duration(seconds: 4));
+    _printerManager.scanResults.listen((printers) {
+      setState(() {
+        _availablePrinters = printers;
+      });
+    });
+  }
+
   Future<void> _printInvoice() async {
     try {
-      // Lấy máy in đã lưu
-      String? connectedPrinter = await Preferences.getMayin();
-      if (connectedPrinter == null) {
+      if (_selectedPrinter == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không có máy in nào được kết nối')),
+          const SnackBar(content: Text('Vui lòng chọn máy in trước khi in')),
         );
         return;
       }
 
-      // Khởi tạo BlueThermalPrinter
-      final bluetooth = BlueThermalPrinter.instance;
-      bool? isConnected = await bluetooth.isConnected;
+      _printerManager.selectPrinter(_selectedPrinter!);
 
-      if (isConnected != true) {
-        // Lấy danh sách các thiết bị đã ghép nối từ flutter_bluetooth_serial
-        List<bluetooth_serial.BluetoothDevice> devices = await bluetooth_serial
-            .FlutterBluetoothSerial.instance
-            .getBondedDevices();
-        debugPrint("device $connectedPrinter");
-
-        // Tìm thiết bị khớp với địa chỉ đã lưu
-        bluetooth_serial.BluetoothDevice? device;
-        try {
-          device = devices.firstWhere((d) => d.address == connectedPrinter);
-        } catch (e) {
-          debugPrint("Error finding device: $e");
-          device = null;
-        }
-
-        if (device == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy máy in Bluetooth')),
-          );
-        } else {
-          debugPrint("Found device: ${device.name} - ${device.address}");
-          // Tiến hành kết nối với máy in
-          if (device != null) {
-            // Chuyển đổi sang BluetoothDevice của BlueThermalPrinter
-            final printerDevice = BluetoothDevice(
-              device.name ?? 'Unknown',
-              device.address,
-            );
-
-            // Kết nối với máy in
-            await bluetooth.connect(printerDevice);
-          }
-        }
-      }
-
-      // Parse và in nội dung HTML
+      // Parse HTML to plain text
       final document = parse(_contentHtml);
       final plainText = document.body?.text ?? "";
 
-      bluetooth.printNewLine();
-      bluetooth.printCustom("Chi tiết hóa đơn", 1, 1); // Header
-      bluetooth.printNewLine();
-      bluetooth.printCustom(plainText, 0, 0); // Content
-      bluetooth.printNewLine();
-      bluetooth.paperCut(); // Paper cut nếu được hỗ trợ
+      // Create ticket for printing
+      final profile = await CapabilityProfile.load();
+      final generator = Generator(PaperSize.mm80, profile);
+      final List<int> ticket = [];
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('In hóa đơn thành công!')),
-      );
+      ticket.addAll(generator.text('Chi tiết hóa đơn', styles: const PosStyles(align: PosAlign.center, bold: true)));
+      ticket.addAll(generator.hr());
+      ticket.addAll(generator.text(plainText));
+      ticket.addAll(generator.cut());
+
+      final PosPrintResult res = await _printerManager.printTicket(ticket);
+
+      if (res == PosPrintResult.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('In hóa đơn thành công!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi in hóa đơn: ${res.msg}')),
+        );
+      }
     } catch (e) {
       debugPrint('Lỗi khi in hóa đơn: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -148,13 +128,50 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.print),
-            onPressed: _printInvoice,
+            onPressed: () async {
+              await _startPrinterScan();
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Chọn máy in'),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: ListView.builder(
+                      itemCount: _availablePrinters.length,
+                      itemBuilder: (context, index) {
+                        final printer = _availablePrinters[index];
+                        return ListTile(
+                          title: Text(printer.name ?? 'Unknown'),
+                          subtitle: Text(printer.address ?? 'No Address'),
+                          onTap: () {
+                            setState(() {
+                              _selectedPrinter = printer;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Đóng'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
       body: _contentHtml.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : WebViewWidget(controller: _webViewController),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _printInvoice,
+        child: const Icon(Icons.print),
+      ),
     );
   }
 }

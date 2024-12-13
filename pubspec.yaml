@@ -46,6 +46,9 @@ dependencies:
   package_info_plus: ^8.1.1
   flutter_tts: ^4.2.0
   audioplayers: ^6.1.0
+  flutter_bluetooth_basic: ^0.1.7
+  esc_pos_bluetooth: ^0.4.1
+  bluetooth_classic: ^0.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
