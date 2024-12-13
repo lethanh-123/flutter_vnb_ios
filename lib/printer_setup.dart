@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:another_brother/label_info.dart';
-import 'package:another_brother/printer_info.dart' as brother;
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class PrinterSetupPage extends StatefulWidget {
   @override
@@ -13,9 +9,9 @@ class PrinterSetupPage extends StatefulWidget {
 
 class _PrinterSetupPageState extends State<PrinterSetupPage> {
   bool isScanning = false;
-  List<brother.BluetoothPrinter> printers = [];
-  String? connectedPrinterName;
-  String? connectedPrinterAddress;
+  List<BluetoothDevice> devices = [];
+  String? connectedPrinterName; // Tên máy in đã kết nối
+  String? connectedPrinterAddress; // Địa chỉ máy in đã kết nối
 
   @override
   void initState() {
@@ -23,6 +19,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     _loadConnectedPrinter();
   }
 
+  // Hàm tải máy in đã kết nối từ SharedPreferences
   Future<void> _loadConnectedPrinter() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -31,6 +28,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     });
   }
 
+  // Hàm lưu máy in vào SharedPreferences
   Future<void> _saveConnectedPrinter(
       String printerName, String printerAddress) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -45,30 +43,29 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     );
   }
 
-  Future<void> _scanForPrinters() async {
+  // Hàm quét các thiết bị Bluetooth
+  Future<void> _scanForBluetoothDevices() async {
     setState(() {
       isScanning = true;
     });
 
     try {
-      brother.Printer printer = brother.Printer();
-      brother.PrinterInfo printInfo = brother.PrinterInfo();
-      printInfo.printerModel = brother.Model.QL_1110NWB;
-      await printer.setPrinterInfo(printInfo);
-
-      // Scan for printers.
-      printers = await printer
-          .getBluetoothPrinters([brother.Model.QL_1110NWB.getName()]);
+      List<BluetoothDevice> foundDevices = [];
+      // Quét các thiết bị Bluetooth
+      await FlutterBluetoothSerial.instance.startDiscovery().listen((event) {
+        foundDevices.add(event.device);
+      }).asFuture();
 
       setState(() {
+        devices = foundDevices;
         isScanning = false;
       });
 
-      if (printers.isNotEmpty) {
-        _showPrintersDialog();
+      if (devices.isNotEmpty) {
+        _showBluetoothDevicesDialog(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy máy in')),
+          SnackBar(content: Text('Không tìm thấy thiết bị Bluetooth')),
         );
       }
     } catch (e) {
@@ -81,26 +78,25 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     }
   }
 
-  void _showPrintersDialog() {
+  // Hàm hiển thị danh sách thiết bị Bluetooth trong hộp thoại
+  void _showBluetoothDevicesDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Chọn máy in'),
-          content: printers.isEmpty
-              ? Text('Không tìm thấy máy in')
+          title: Text('Chọn máy in Bluetooth'),
+          content: devices.isEmpty
+              ? Text('Không tìm thấy thiết bị Bluetooth')
               : Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: printers.map((printer) {
+                  children: devices.map((device) {
                     return ListTile(
-                      title: Text(printer.modelName ?? 'Unknown'),
-                      subtitle: Text(printer.macAddress),
+                      title: Text(device.name ?? device.address),
+                      subtitle: Text(device.address),
                       onTap: () {
                         Navigator.pop(context);
                         _saveConnectedPrinter(
-                          printer.modelName ?? 'Unknown',
-                          printer.macAddress,
-                        );
+                            device.name ?? 'Không tên', device.address);
                       },
                     );
                   }).toList(),
@@ -114,46 +110,46 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quét Máy In'),
+        title: Text('Quét Máy In Bluetooth'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Quét và chọn máy in',
+            Text(
+              'Quét và chọn máy in Bluetooth',
               style: TextStyle(fontSize: 18, color: Colors.black87),
             ),
-            const SizedBox(height: 16.0),
+            SizedBox(height: 16.0),
             if (connectedPrinterName != null)
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Máy in đã kết nối:',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     connectedPrinterName!,
-                    style: const TextStyle(fontSize: 16, color: Colors.teal),
+                    style: TextStyle(fontSize: 16, color: Colors.teal),
                   ),
                 ],
               ),
-            const SizedBox(height: 16.0),
+            SizedBox(height: 16.0),
             if (isScanning)
-              const Center(
+              Center(
                 child: CircularProgressIndicator(),
               ),
-            const SizedBox(height: 16.0),
+            SizedBox(height: 16.0),
             ElevatedButton(
-              onPressed: isScanning ? null : _scanForPrinters,
+              onPressed: isScanning ? null : _scanForBluetoothDevices,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal[700],
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(12.0),
               ),
-              child: const Text(
-                'Quét Máy In',
+              child: Text(
+                'Quét Máy In Bluetooth',
                 style:
                     TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
