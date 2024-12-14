@@ -278,13 +278,16 @@ class _BanHangScreenState extends State<BanHangScreen> {
       MaterialPageRoute(
         builder: (context) => PaymentPage(
           employeeName: _selectedEmployee,
-          selectedProducts: _selectedProducts
+          selectedProducts: List<Map<String, dynamic>>.from(_selectedProducts
               .where((product) => (product['so_luong'] ?? 0) > 0)
-              .toList(),
+              .toList()),
           onUpdatedProducts: (updatedProducts) {
             setState(() {
+              // Cập nhật danh sách sản phẩm được chọn sau khi quay lại
               _selectedProducts.clear();
               _selectedProducts.addAll(updatedProducts);
+              debugPrint(
+                  "Updated products in banhang.dart: $_selectedProducts");
             });
           },
           customerId: _selectedCustomerId, // Truyền khach_id

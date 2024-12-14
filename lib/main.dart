@@ -9,8 +9,35 @@ import 'preferences.dart';
 import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'them_khach_hang.dart';
+import 'package:logging/logging.dart';
 import 'edit_khach_hang.dart';
+
+final Logger logger = Logger('MyApp'); //  Khai báo logger
+
+void configureLogging() {
+  Logger.root.level = Level.ALL; // Hiển thị tất cả các cấp độ log
+
+  logger.onRecord.listen((record) {
+    final logMessage =
+        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}';
+
+    //  Chia log thành các đoạn nhỏ hơn (3000 ký tự)
+    const chunkSize = 3000; // Gấp 3 lần kích thước hiện tại
+    for (int i = 0; i < logMessage.length; i += chunkSize) {
+      debugPrint(
+        logMessage.substring(
+            i,
+            i + chunkSize > logMessage.length
+                ? logMessage.length
+                : i + chunkSize),
+        wrapWidth: 3000, //  Tăng wrapWidth để log không bị cắt
+      );
+    }
+  });
+}
+
 void main() {
+  configureLogging();
   runApp(const MyApp());
 }
 
@@ -19,6 +46,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    logger.info('Ứng dụng MyApp đã khởi chạy');
     return MaterialApp(
       title: 'Flutter App',
       theme: ThemeData(
@@ -33,7 +61,7 @@ class MyApp extends StatelessWidget {
         '/cai_dat': (context) => SettingsScreen(),
         '/login': (context) => const LoginScreen(),
         '/them_khach_hang': (context) => AddCustomerScreen(),
-         '/edit_khach_hang': (context) => EditCustomerScreen(),
+        '/edit_khach_hang': (context) => EditCustomerScreen(),
       },
     );
   }

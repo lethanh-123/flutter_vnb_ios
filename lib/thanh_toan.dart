@@ -7,6 +7,9 @@ import 'functions.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'dart:convert';
 import 'functions.dart';
+import 'package:logging/logging.dart';
+
+final Logger logger = Logger('MyApp');
 
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> selectedProducts;
@@ -46,6 +49,7 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _showEmployeeDropdown = false;
   List<dynamic> _bankList = [];
   Map<String, dynamic> selectedGift = {};
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +90,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   void _calculateTotalAmount() {
+    logger.info("widget.selectedProducts: ${widget.selectedProducts}");
     setState(() {
       totalAmount = widget.selectedProducts.fold(0.0, (sum, product) {
         double productTotal = (product['so_luong'] as num).toDouble() *
@@ -464,18 +469,14 @@ class _PaymentPageState extends State<PaymentPage> {
         String discountNote = product['discountNote'] ?? ''; // Ghi chú giảm giá
         bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
 
-        // Truy xuất dữ liệu giftData
-
         var listTangKem = product['list_tang_kem'] != null
             ? product['list_tang_kem'] as List
             : [];
-
         var qua_tang_list = product['qua_tang_list'] != null
             ? product['qua_tang_list'] as List
             : [];
-        // Lấy giá trị data_length
         int doi_qua_tang = product['doi_qua_tang'] ?? 0;
-        debugPrint(product['ten_sp'] + "- " + doi_qua_tang.toString());
+
         return Card(
           margin: const EdgeInsets.all(8.0),
           child: Padding(
@@ -483,20 +484,17 @@ class _PaymentPageState extends State<PaymentPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Hiển thị tên sản phẩm
                 Text(
                   product['ten_sp'] ?? 'Tên sản phẩm không xác định',
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                // Hiển thị mã vạch
                 Text(
                   productId,
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
                 const SizedBox(height: 8),
-                // Xử lý số lượng và giá
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -508,10 +506,12 @@ class _PaymentPageState extends State<PaymentPage> {
                           : () {
                               setState(() {
                                 if (product['so_luong'] > 1) {
-                                  product['so_luong']--;
+                                  int oldQuantity = product['so_luong'];
+                                  product[
+                                      'so_luong']--; // Giảm số lượng sản phẩm chính
+                                  _updateGiftQuantities(product, oldQuantity);
                                   _calculateTotalAmount();
                                 } else if (product['so_luong'] == 1) {
-                                  // Nếu số lượng sản phẩm chính về 0, xóa quà tặng
                                   showConfirmDialog(
                                       context, product['ma_vach']);
                                 }
@@ -529,7 +529,10 @@ class _PaymentPageState extends State<PaymentPage> {
                           ? null
                           : () {
                               setState(() {
-                                product['so_luong']++;
+                                int oldQuantity = product['so_luong'];
+                                product[
+                                    'so_luong']++; // Tăng số lượng sản phẩm chính
+                                _updateGiftQuantities(product, oldQuantity);
                                 _calculateTotalAmount();
                               });
                             },
@@ -542,55 +545,42 @@ class _PaymentPageState extends State<PaymentPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Hiển thị ghi chú hiện tại (nếu có)
                 if (ghiChu.isNotEmpty)
                   Text(
                     'Ghi chú: $ghiChu',
                     style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                      fontStyle: FontStyle.italic,
-                    ),
+                        fontSize: 14,
+                        color: Colors.black54,
+                        fontStyle: FontStyle.italic),
                   ),
                 const SizedBox(height: 8),
-                // Hiển thị ghi chú giảm giá (nếu có)
                 if (discountNote.isNotEmpty)
                   Text(
                     'Giảm giá: $discountNote',
                     style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.green,
-                      fontStyle: FontStyle.italic,
-                    ),
+                        fontSize: 14,
+                        color: Colors.green,
+                        fontStyle: FontStyle.italic),
                   ),
                 const SizedBox(height: 8),
-                // Hiển thị nút Quà tặng
                 if (doi_qua_tang > 0)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          doi_qua_tang > 1 ? Colors.green : Colors.deepOrange,
-                    ),
+                        backgroundColor: doi_qua_tang > 1
+                            ? Colors.green
+                            : Colors.deepOrange),
                     onPressed: () async {
                       if (doi_qua_tang > 1) {
                         await _showGiftSelectionDialog(
-                          product,
-                          listTangKem,
-                          doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
-                        );
+                            product, listTangKem, 'Đổi quà tặng');
                       } else {
                         await _showQuaTangDialog(
-                          product,
-                          qua_tang_list,
-                          doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
-                        );
+                            product, qua_tang_list, 'Chọn quà tặng');
                       }
                     },
                     child: Text(
                       doi_qua_tang > 1 ? 'Đổi quà tặng' : 'Chọn quà tặng',
-                      style: const TextStyle(
-                        color: Colors.white,
-                      ),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -600,6 +590,31 @@ class _PaymentPageState extends State<PaymentPage> {
         );
       }).toList(),
     );
+  }
+
+  void _updateGiftQuantities(Map<String, dynamic> product, int oldQuantity) {
+    String productCode = product['ma_vach'];
+    int newQuantity = product['so_luong'] ?? 0;
+
+    for (var gift in widget.selectedProducts) {
+      if (gift['qua_tang'] == productCode) {
+        setState(() {
+          int giftOldQuantity = gift['so_luong'] ?? 0;
+          int giftNewQuantity =
+              ((giftOldQuantity / oldQuantity) * newQuantity).round();
+
+          // Cập nhật số lượng quà tặng
+          gift['so_luong'] = giftNewQuantity;
+
+          // Nếu quà tặng có số lượng = 0, xóa nó
+          if (giftNewQuantity == 0) {
+            widget.selectedProducts.remove(gift);
+          }
+        });
+      }
+    }
+
+    widget.onUpdatedProducts(widget.selectedProducts);
   }
 
   void removeGiftProducts(String mainProductCode) {
