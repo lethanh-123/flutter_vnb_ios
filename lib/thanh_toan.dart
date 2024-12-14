@@ -96,13 +96,21 @@ class _PaymentPageState extends State<PaymentPage> {
         double productTotal = (product['so_luong'] as num).toDouble() *
             (product['don_gia'] as num).toDouble();
 
-        // Trừ tiền giảm giá nếu có
-        if (product.containsKey('discountAmount')) {
-          productTotal -= (product['discountAmount'] as num)
-              .toDouble(); // Ensure discount is double
+        // Kiểm tra sản phẩm quà tặng
+        bool isGift = (product['qua_tang'] ?? '').isNotEmpty;
+
+        // Nếu sản phẩm là quà tặng nhưng có giá trị, thêm vào tổng tiền
+        if (isGift && product['don_gia'] > 0) {
+          sum += productTotal;
+        } else if (!isGift) {
+          // Trừ tiền giảm giá nếu có
+          if (product.containsKey('discountAmount')) {
+            productTotal -= (product['discountAmount'] as num).toDouble();
+          }
+          sum += productTotal;
         }
 
-        return sum + productTotal;
+        return sum;
       });
     });
   }
@@ -611,7 +619,7 @@ class _PaymentPageState extends State<PaymentPage> {
         });
       }
     }
-
+    _calculateTotalAmount();
     widget.onUpdatedProducts(widget.selectedProducts);
   }
 
@@ -691,6 +699,8 @@ class _PaymentPageState extends State<PaymentPage> {
                       product['ten_sp'] = gift['ten_sp'];
                       product['ma_vach'] = gift['ma_vach'];
                       product['don_gia'] = gift['gia'];
+                      // Cập nhật tổng số tiền
+                      _calculateTotalAmount();
                     });
                     Navigator.of(context).pop();
                   },
