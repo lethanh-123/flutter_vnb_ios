@@ -60,9 +60,12 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     });
 
     try {
-      bluetoothManager.startScan(timeout: Duration(seconds: 4));
+      // Bắt đầu quét
+      await bluetoothManager.startScan(timeout: Duration(seconds: 4));
 
-      bluetoothManager.scanResults.listen((scannedDevices) {
+      // Lắng nghe kết quả quét
+      bluetoothManager.scanResults
+          .listen((List<BluetoothDevice> scannedDevices) {
         setState(() {
           devices = scannedDevices;
           isScanning = false;
