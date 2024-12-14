@@ -281,6 +281,12 @@ class _BanHangScreenState extends State<BanHangScreen> {
           selectedProducts: _selectedProducts
               .where((product) => (product['so_luong'] ?? 0) > 0)
               .toList(),
+          onUpdatedProducts: (updatedProducts) {
+            setState(() {
+              _selectedProducts.clear();
+              _selectedProducts.addAll(updatedProducts);
+            });
+          },
           customerId: _selectedCustomerId, // Truyền khach_id
           selectedEmployeeId: _selectedEmployeeId ?? '',
           selectedEmployeeIdInt: _selectedEmployeeIdInt ?? 0,
@@ -341,9 +347,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
       setState(() {}); // Cập nhật giao diện
     }
-    // else {
-    //   removeGiftProducts(product['ma_vach']);
-    // }
   }
 
   Widget _buildEmployeeAndCustomerSection() {
@@ -448,8 +451,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
             if (san_pham['qua_tang'] == null) san_pham['qua_tang'] = "";
             if (san_pham['ma_vach'] == product['ma_vach'] &&
                 san_pham['qua_tang'] == product['qua_tang']) {
-              debugPrint("qua_tang: " + san_pham['qua_tang']);
-              debugPrint("qua_tang: " + product['qua_tang']);
               isSelected = true;
               index_select = i;
 
@@ -465,8 +466,6 @@ class _BanHangScreenState extends State<BanHangScreen> {
 
                   product['so_luong'] = 0; // Đặt lại số lượng khi bỏ chọn
                 } else {
-                  // _selectedProducts.add(index);
-
                   product['so_luong'] = 0; // Khởi tạo số lượng là 0
                   _selectedProducts.add(product);
                 }

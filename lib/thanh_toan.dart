@@ -15,6 +15,7 @@ class PaymentPage extends StatefulWidget {
   final String selectedCustomer;
   final String selectedEmployeeId;
   final int selectedEmployeeIdInt;
+  final void Function(List<Map<String, dynamic>>) onUpdatedProducts;
   const PaymentPage({
     Key? key,
     required this.employeeName,
@@ -22,6 +23,7 @@ class PaymentPage extends StatefulWidget {
     required this.selectedProducts,
     required this.selectedEmployeeId,
     required this.selectedEmployeeIdInt,
+    required this.onUpdatedProducts,
     this.customerId, // Nhận khach_id từ constructor
   }) : super(key: key);
 
@@ -287,6 +289,7 @@ class _PaymentPageState extends State<PaymentPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context); // Navigate back
+            widget.onUpdatedProducts(widget.selectedProducts);
           },
         ),
       ),
@@ -649,6 +652,7 @@ class _PaymentPageState extends State<PaymentPage> {
       // Nếu không còn sản phẩm nào, quay lại trang trước
       if (widget.selectedProducts.isEmpty) {
         Navigator.pop(context); // Quay về trang banhang.dart
+        widget.onUpdatedProducts(widget.selectedProducts);
       }
     });
   }
