@@ -42,7 +42,8 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       'address': device.address,
     });
 
-    await prefs.setString('connected_printer', deviceJson);
+    await prefs.setString('connected_printer',
+        deviceJson); // Lưu vào SharedPreferences với key 'connected_printer'
 
     setState(() {
       connectedDevice = device;

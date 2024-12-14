@@ -6,11 +6,14 @@ import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:html/parser.dart';
 import 'api_service.dart';
 import 'preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
   final String maPhieu;
 
-  const InvoiceDetailScreen({Key? key, required this.maPhieu}) : super(key: key);
+  const InvoiceDetailScreen({Key? key, required this.maPhieu})
+      : super(key: key);
 
   @override
   _InvoiceDetailScreenState createState() => _InvoiceDetailScreenState();
@@ -20,7 +23,6 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   late WebViewController _webViewController;
   String _contentHtml = "";
   final PrinterBluetoothManager _printerManager = PrinterBluetoothManager();
-  List<PrinterBluetooth> _availablePrinters = [];
   PrinterBluetooth? _selectedPrinter;
 
   @override
@@ -29,6 +31,20 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
     _loadInvoiceDetails();
+    _loadConnectedPrinter(); // Gọi hàm này để tải thông tin máy in đã lưu
+  }
+
+  Future<void> _loadConnectedPrinter() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? printerJson = prefs.getString('connected_printer');
+
+    if (printerJson != null) {
+      Map<String, dynamic> printerData = jsonDecode(printerJson);
+      setState(() {
+        BluetoothDevice device = BluetoothDevice.fromJson(printerData);
+        _selectedPrinter = PrinterBluetooth(device);
+      });
+    }
   }
 
   Future<void> _loadInvoiceDetails() async {
@@ -67,15 +83,6 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     }
   }
 
-  Future<void> _startPrinterScan() async {
-    _printerManager.startScan(Duration(seconds: 4));
-    _printerManager.scanResults.listen((printers) {
-      setState(() {
-        _availablePrinters = printers;
-      });
-    });
-  }
-
   Future<void> _printInvoice() async {
     try {
       if (_selectedPrinter == null) {
@@ -87,16 +94,15 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
       _printerManager.selectPrinter(_selectedPrinter!);
 
-      // Parse HTML to plain text
       final document = parse(_contentHtml);
       final plainText = document.body?.text ?? "";
 
-      // Create ticket for printing
       final profile = await CapabilityProfile.load();
       final generator = Generator(PaperSize.mm80, profile);
       final List<int> ticket = [];
 
-      ticket.addAll(generator.text('Chi tiết hóa đơn', styles: const PosStyles(align: PosAlign.center, bold: true)));
+      ticket.addAll(generator.text('Chi tiết hóa đơn',
+          styles: const PosStyles(align: PosAlign.center, bold: true)));
       ticket.addAll(generator.hr());
       ticket.addAll(generator.text(plainText));
       ticket.addAll(generator.cut());
@@ -129,38 +135,28 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: () async {
-              await _startPrinterScan();
-              showDialog(
+              final result = await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Chọn máy in'),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: ListView.builder(
-                      itemCount: _availablePrinters.length,
-                      itemBuilder: (context, index) {
-                        final printer = _availablePrinters[index];
-                        return ListTile(
-                          title: Text(printer.name ?? 'Unknown'),
-                          subtitle: Text(printer.address ?? 'No Address'),
-                          onTap: () {
-                            setState(() {
-                              _selectedPrinter = printer;
-                            });
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-                  ),
+                  title: const Text('Xác nhận in hóa đơn'),
+                  content: Text(
+                      'Bạn có chắc chắn muốn in mã phiếu ${widget.maPhieu}?'),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Đóng'),
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('OK'),
                     ),
                   ],
                 ),
               );
+
+              if (result == true) {
+                await _printInvoice();
+              }
             },
           ),
         ],
@@ -168,10 +164,6 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
       body: _contentHtml.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : WebViewWidget(controller: _webViewController),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _printInvoice,
-        child: const Icon(Icons.print),
-      ),
     );
   }
 }
