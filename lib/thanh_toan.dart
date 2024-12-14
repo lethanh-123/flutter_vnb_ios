@@ -165,8 +165,6 @@ class _PaymentPageState extends State<PaymentPage> {
     };
 
     final response = await ApiService.callApi('ap_dung_ma_giam_gia', request);
-    debugPrint("rrequestfasf " + request.toString());
-    debugPrint("responsefasf " + response.toString());
     if (response != null) {
       setState(() {
         discountAmount = response['giam_gia_list'][0]['tien_giam_gia'] ??
@@ -554,7 +552,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         fontStyle: FontStyle.italic),
                   ),
                 const SizedBox(height: 8),
-                if (discountNote.isNotEmpty)
+                if (discountNote.isNotEmpty && !isGift)
                   Text(
                     'Giảm giá: $discountNote',
                     style: const TextStyle(
@@ -818,13 +816,6 @@ class _PaymentPageState extends State<PaymentPage> {
                         }
                         product['list_tang_kem'] = gift['list_tang_kem'];
                       }
-                      // Cập nhật thông tin sản phẩm với quà tặng đã chọn
-                      /*
-                      product['ten_sp'] = gift['ten_sp'];
-                      product['ma_vach'] = gift['ma_vach'];
-                      product['don_gia'] = gift['gia'];
-                      product['so_luong'] = gift['so_luong'];
-                      */
                     });
                     Navigator.of(context).pop();
                   },
