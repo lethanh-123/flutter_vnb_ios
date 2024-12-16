@@ -278,25 +278,55 @@ class _BanHangScreenState extends State<BanHangScreen> {
       MaterialPageRoute(
         builder: (context) => PaymentPage(
           employeeName: _selectedEmployee,
-          selectedProducts: List<Map<String, dynamic>>.from(_selectedProducts
-              .where((product) => (product['so_luong'] ?? 0) > 0)
-              .toList()),
+          selectedProducts: List<Map<String, dynamic>>.from(
+            _selectedProducts.where((product) => product['so_luong'] > 0),
+          ),
           onUpdatedProducts: (updatedProducts) {
             setState(() {
-              // Cập nhật danh sách sản phẩm được chọn sau khi quay lại
-              _selectedProducts.clear();
-              _selectedProducts.addAll(updatedProducts);
-              debugPrint(
-                  "Updated products in banhang.dart: $_selectedProducts");
+              _selectedProducts
+                ..clear()
+                ..addAll(updatedProducts);
             });
           },
-          customerId: _selectedCustomerId, // Truyền khach_id
+          customerId: _selectedCustomerId,
           selectedEmployeeId: _selectedEmployeeId ?? '',
           selectedEmployeeIdInt: _selectedEmployeeIdInt ?? 0,
           selectedCustomer: _selectedCustomer,
         ),
       ),
     );
+  }
+
+  void _updateSelectedProducts(dynamic product) {
+    setState(() {
+      // Nếu số lượng sản phẩm chính là 0, xóa sản phẩm chính và quà tặng liên quan
+      if (product['so_luong'] == 0) {
+        _selectedProducts.removeWhere(
+          (p) =>
+              p['ma_vach'] == product['ma_vach'] ||
+              p['qua_tang'] == product['ma_vach'],
+        );
+      }
+    });
+  }
+
+  void _updateProductQuantity(dynamic product, int newQuantity) {
+    setState(() {
+      product['so_luong'] = newQuantity;
+
+      // Kiểm tra và cập nhật danh sách sản phẩm
+      if (newQuantity == 0) {
+        // Xóa các sản phẩm quà tặng liên quan
+        removeGiftProducts(product['ma_vach']);
+
+        // Xóa sản phẩm chính khỏi danh sách đã chọn
+        _selectedProducts
+            .removeWhere((sp) => sp['ma_vach'] == product['ma_vach']);
+      } else {
+        // Nếu số lượng lớn hơn 0, cập nhật danh sách quà tặng
+        checkQuaTang(product);
+      }
+    });
   }
 
   Future<void> checkQuaTang(dynamic product) async {
@@ -468,6 +498,8 @@ class _BanHangScreenState extends State<BanHangScreen> {
                   _selectedProducts.removeAt(index_select);
 
                   product['so_luong'] = 0; // Đặt lại số lượng khi bỏ chọn
+                  // Gọi hàm để cập nhật danh sách và xóa quà tặng liên quan
+                  _updateProductQuantity(product, 0);
                 } else {
                   product['so_luong'] = 0; // Khởi tạo số lượng là 0
                   _selectedProducts.add(product);
@@ -542,6 +574,7 @@ class _BanHangScreenState extends State<BanHangScreen> {
                                     iconSize: 30,
                                     onPressed: () {
                                       setState(() {
+                                        _updateProductQuantity(product, 0);
                                         product['so_luong'] =
                                             (product['so_luong'] ?? 1) - 1;
                                         if (product['so_luong'] < 0) {
@@ -856,16 +889,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
     }
   }
 
-  void removeGiftProducts(String mainProductCode) {
+  void removeGiftProducts(String maVachChinh) {
     setState(() {
-      _selectedProducts.removeWhere((product) {
-        return product['qua_tang'] != null &&
-            product['qua_tang'] == mainProductCode;
-      });
-      _products.removeWhere((product) {
-        return product['qua_tang'] != null &&
-            product['qua_tang'] == mainProductCode;
-      });
+      _selectedProducts
+          .removeWhere((product) => product['qua_tang'] == maVachChinh);
     });
   }
 
