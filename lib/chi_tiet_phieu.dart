@@ -78,13 +78,13 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
   Future<Uint8List> _captureWebViewAsImage() async {
     try {
       // Chờ cho đến khi widget được dựng xong
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
       // Tìm đối tượng RenderRepaintBoundary
       RenderRepaintBoundary? boundary = _repaintBoundaryKey.currentContext
           ?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary != null) {
-        ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+        ui.Image image = await boundary.toImage(pixelRatio: 1.6);
         ByteData? byteData =
             await image.toByteData(format: ui.ImageByteFormat.png);
         if (byteData != null) {
@@ -128,8 +128,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
         debugPrint("Không thể chụp hình ảnh từ WebView");
       }
 
-      bytes += generator.text("In",
-          styles: const PosStyles(bold: true, underline: true));
+      // bytes += generator.text("In",
+      //     styles: const PosStyles(bold: true, underline: true));
       bytes += generator.cut();
 
       final bool isConnected = await PrintBluetoothThermal.connectionStatus;
