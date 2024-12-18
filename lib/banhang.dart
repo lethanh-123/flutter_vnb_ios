@@ -172,10 +172,10 @@ class _BanHangScreenState extends State<BanHangScreen> {
         await audioPlayer
             .play(AssetSource('beep.mp3')); // Đường dẫn file âm thanh
         break;
-      case 1: // Giọng nói
-        await flutterTts.speak("Sản phẩm: $productName");
-        break;
-      case 2: // Không âm thanh
+      case 1: // Không âm thanh
+      //   await flutterTts.speak("Sản phẩm: $productName");
+      //   break;
+      // case 2: 
       default:
         // Không làm gì
         break;

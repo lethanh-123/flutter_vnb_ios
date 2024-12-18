@@ -124,9 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: notificationType,
                       items: const [
                         DropdownMenuItem(value: 0, child: Text('Tiếng bíp')),
-                        DropdownMenuItem(value: 1, child: Text('Giọng nói')),
+                        // DropdownMenuItem(value: 1, child: Text('Giọng nói')),
                         DropdownMenuItem(
-                            value: 2, child: Text('Không âm thanh')),
+                            value: 1, child: Text('Không âm thanh')),
                       ],
                       onChanged: (value) async {
                         setState(() {
@@ -236,8 +236,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 0:
         return 'Tiếng bíp';
       case 1:
-        return 'Giọng nói';
-      case 2:
         return 'Không âm thanh';
       default:
         return 'Không xác định';
