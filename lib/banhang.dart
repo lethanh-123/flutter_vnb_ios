@@ -54,6 +54,12 @@ class _BanHangScreenState extends State<BanHangScreen> {
     fetchAppInfo();
     _loadNotificationType();
     _scrollController.addListener(_onScroll);
+    _initializeTTS();
+  }
+
+  void _initializeTTS() async {
+    await flutterTts.setLanguage("vi-VN"); // Thiết lập ngôn ngữ là tiếng Việt
+    await flutterTts.setSpeechRate(0.5); // Tốc độ đọc
   }
 
   @override
@@ -870,8 +876,15 @@ class _BanHangScreenState extends State<BanHangScreen> {
             final productName = response['ten_sp'] ?? 'Sản phẩm';
             setState(() {
               _scanStatus = 'Đã quét thành công: $productName';
-              _selectedProducts.add(response);
+              _selectedProducts.insert(
+                  0, response); // Đưa sản phẩm vào danh sách đã chọn
+
+              // Đưa sản phẩm lên đầu danh sách _products
+              _products.removeWhere((sp) =>
+                  sp['ma_vach'] == response['ma_vach']); // Xóa sản phẩm cũ
+              _products.insert(0, response); // Thêm sản phẩm lên đầu danh sách
             });
+
             debugPrint("requestDataxvxv" + requestData.toString());
             debugPrint("responsevxvxv" + response.toString());
             await _playNotification(productName); // Play sound or read name
