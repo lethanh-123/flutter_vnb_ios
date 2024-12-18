@@ -123,14 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: DropdownButton<int>(
                       value: notificationType,
                       items: const [
-                        DropdownMenuItem(
-                          value: 0,
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                                top: 30.0), // Margin cho item đầu tiên
-                            child: Text('Tiếng bíp'),
-                          ),
-                        ),
+                        DropdownMenuItem(value: 0, child: Text('Tiếng bíp')),
                         DropdownMenuItem(value: 1, child: Text('Giọng nói')),
                         DropdownMenuItem(
                             value: 2, child: Text('Không âm thanh')),
