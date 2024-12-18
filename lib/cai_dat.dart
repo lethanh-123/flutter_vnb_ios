@@ -85,49 +85,129 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       drawer: _buildDrawer(context),
       body: ListView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Âm báo',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8.0),
-              DropdownButton<int>(
-                value: notificationType,
-                items: [
-                  DropdownMenuItem(value: 0, child: Text('Tiếng bíp')),
-                  DropdownMenuItem(value: 1, child: Text('Giọng nói')),
-                  DropdownMenuItem(value: 2, child: Text('Không âm thanh')),
-                ],
-                onChanged: (value) async {
-                  setState(() {
-                    notificationType = value!;
-                  });
-                  await _saveNotificationType(value!);
-                },
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  showToast(
-                      'Đã chọn: ${_getNotificationLabel(notificationType)}');
-                },
-                child: Text('Cập nhật'),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 3), // changes position of shadow
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Âm báo',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
+                const SizedBox(height: 12.0),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: notificationType,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 0,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                top: 30.0), // Margin cho item đầu tiên
+                            child: Text('Tiếng bíp'),
+                          ),
+                        ),
+                        DropdownMenuItem(value: 1, child: Text('Giọng nói')),
+                        DropdownMenuItem(
+                            value: 2, child: Text('Không âm thanh')),
+                      ],
+                      onChanged: (value) async {
+                        setState(() {
+                          notificationType = value!;
+                        });
+                        await _saveNotificationType(value!);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                    ),
+                    onPressed: () {
+                      showToast(
+                          'Đã chọn: ${_getNotificationLabel(notificationType)}');
+                    },
+                    child: const Text(
+                      'Cập nhật',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          SizedBox(height: 16.0),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PrinterSetupPage()),
-              );
-            },
-            child: Text('Chọn Máy In'),
+          const SizedBox(height: 20.0),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 3), // changes position of shadow
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14.0),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PrinterSetupPage()),
+                );
+              },
+              icon: const Icon(Icons.print, color: Colors.white),
+              label: const Text(
+                'Chọn Máy In',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+            ),
           ),
         ],
       ),
